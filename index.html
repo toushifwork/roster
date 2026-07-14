@@ -1,0 +1,2221 @@
+<!DOCTYPE html>
+<script type="application/json" id="cowork-artifact-meta">
+{
+  "name": "Duty Roster App",
+  "schemaVersion": 1,
+  "description": "Mobile-first weekly duty roster app. Staff list; Masters section (menu) for Roles, Departments and named Shifts (add/edit/delete); daily/weekly duty with named shift presets, split times, duty types (Full Day, two-part Break Duty, Half Day) with automatic hour totals, leave/off/other-site, multi-department days; chronological day view sorted by shift start time; Leave Register with conflict warnings, booking dates and roster sync; fast tools (copy yesterday, save-to-whole-week, copy previous week, Undo); day & week WhatsApp share, downloadable landscape week poster image (PNG) and print posters; backup reminders and JSON backup/restore. Data stored locally in the browser."
+}
+</script>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Duty Roster</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1F3864">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<style>
+:root{
+  color-scheme: light;
+  --navy:#1F3864; --navy2:#2E4A7A;
+  --green:#2E7D32; --greenbg:#E6F4EA;
+  --red:#C62828; --redbg:#FDEAEA;
+  --grey:#616161; --greybg:#EFEFEF;
+  --yellow:#B8860B; --yellowbg:#FFF6DD;
+  --orange:#C65911; --orangebg:#FDECDC;
+  --teal:#00695C; --tealbg:#E0F2F1;
+  --line:#E3E6EC; --card:#FFFFFF; --bg:#F4F6FA; --text:#20242C; --sub:#7A8296;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;-webkit-tap-highlight-color:transparent;}
+#phone{max-width:430px;margin:0 auto;min-height:100vh;background:var(--bg);display:flex;flex-direction:column;position:relative;box-shadow:0 0 30px rgba(0,0,0,.08);}
+.topbar{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;padding:14px 14px 10px;position:sticky;top:0;z-index:20;}
+.topbar-row1{display:flex;align-items:center;justify-content:space-between;}
+.appname{font-size:18px;font-weight:800;letter-spacing:.3px;display:flex;align-items:center;gap:8px;}
+.menubtn{background:rgba(255,255,255,.15);border:none;color:#fff;font-size:18px;width:34px;height:34px;border-radius:10px;}
+.weeknav{display:flex;align-items:center;justify-content:space-between;margin-top:10px;background:rgba(255,255,255,.12);border-radius:12px;padding:6px 8px;}
+.weeknav button{background:rgba(255,255,255,.18);border:none;color:#fff;width:30px;height:30px;border-radius:8px;font-size:16px;}
+.weekrange{font-size:13.5px;font-weight:700;text-align:center;flex:1;}
+.weekrange small{display:block;font-weight:500;opacity:.85;font-size:11px;margin-top:1px;}
+.todaybtn{background:#fff;color:var(--navy);font-weight:700;border:none;border-radius:8px;padding:5px 9px;font-size:11.5px;margin-left:6px;}
+.daystrip{display:flex;gap:8px;overflow-x:auto;padding:10px 12px;background:#fff;border-bottom:1px solid var(--line);scrollbar-width:none;}
+.daystrip::-webkit-scrollbar{display:none;}
+.daypill{flex:0 0 auto;min-width:52px;text-align:center;padding:7px 4px;border-radius:12px;background:var(--bg);border:1px solid var(--line);font-size:12px;font-weight:600;color:var(--sub);}
+.daypill .dnum{display:block;font-size:15px;font-weight:800;color:var(--text);margin-top:2px;}
+.daypill.active{background:var(--navy);border-color:var(--navy);color:#fff;}
+.daypill.active .dnum{color:#fff;}
+.daypill.istoday:not(.active){box-shadow:inset 0 0 0 2px var(--navy2);}
+.daypill .lvdot{display:block;width:6px;height:6px;border-radius:50%;background:var(--red);margin:3px auto 0;}
+.content{flex:1;padding:12px 12px 90px;overflow-y:auto;}
+.dept-card{background:var(--card);border-radius:14px;margin-bottom:12px;overflow:hidden;border:1px solid var(--line);}
+.dept-head{padding:9px 12px;color:#fff;font-weight:800;font-size:13px;letter-spacing:.3px;display:flex;justify-content:space-between;align-items:center;}
+.dept-head .cnt{opacity:.85;font-weight:600;font-size:12px;}
+.headbtn{background:rgba(255,255,255,.25);border:none;color:#fff;font-size:11px;font-weight:800;border-radius:8px;padding:4px 9px;}
+.staffrow{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-top:1px solid var(--line);gap:10px;}
+.staffrow:first-of-type{border-top:none;}
+.staffinfo{flex:1;min-width:0;}
+.staffname{font-weight:700;font-size:14.5px;}
+.staffrole{font-size:11.5px;color:var(--sub);}
+.chip{border:none;border-radius:10px;padding:8px 10px;font-size:12px;font-weight:700;max-width:160px;text-align:center;line-height:1.25;white-space:normal;}
+.chip.empty{background:var(--greybg);color:var(--sub);border:1px dashed #C9CEDA;font-weight:600;}
+.chip.k-shift{background:var(--greenbg);color:var(--green);}
+.chip.k-leave{background:var(--redbg);color:var(--red);}
+.chip.k-off{background:var(--greybg);color:var(--grey);}
+.chip.k-halfday{background:var(--yellowbg);color:var(--yellow);}
+.chip.k-break{background:var(--orangebg);color:var(--orange);}
+.chip.k-othersite{background:var(--tealbg);color:var(--teal);}
+.emptystate{text-align:center;padding:50px 20px;color:var(--sub);}
+.emptystate .big{font-size:40px;margin-bottom:10px;}
+.emptystate button{margin-top:14px;background:var(--navy);color:#fff;border:none;padding:10px 18px;border-radius:10px;font-weight:700;font-size:13.5px;}
+.emptystate button.ghostbtn{background:var(--greybg);color:var(--text);margin-top:10px;font-size:12.5px;}
+.gridwrap{overflow-x:auto;background:#fff;border-radius:14px;border:1px solid var(--line);}
+table.wk{border-collapse:collapse;width:100%;font-size:11.5px;}
+table.wk th,table.wk td{border:1px solid var(--line);padding:6px;text-align:center;white-space:nowrap;}
+table.wk th{background:#F0F2F7;position:sticky;top:0;}
+table.wk td.namecell{text-align:left;font-weight:700;background:#fafbfd;position:sticky;left:0;}
+table.wk tr.deptrow td{color:#fff;font-weight:800;text-align:left;padding:6px 8px;}
+table.wk td.cell{cursor:pointer;font-weight:700;font-size:11px;}
+td.k-shift{background:var(--greenbg);color:var(--green);}
+td.k-leave{background:var(--redbg);color:var(--red);}
+td.k-off{background:var(--greybg);color:var(--grey);}
+td.k-halfday{background:var(--yellowbg);color:var(--yellow);}
+td.k-break{background:var(--orangebg);color:var(--orange);}
+td.k-othersite{background:var(--tealbg);color:var(--teal);}
+td.k-empty{background:#fff;color:#C9CEDA;}
+.stafflistcard{background:var(--card);border-radius:14px;border:1px solid var(--line);margin-bottom:12px;overflow:hidden;}
+.staffmanrow{display:flex;justify-content:space-between;align-items:center;padding:11px 12px;border-top:1px solid var(--line);}
+.staffmanrow:first-of-type{border-top:none;}
+.iconbtn{background:none;border:none;font-size:16px;padding:4px 7px;color:var(--sub);}
+.dot{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:8px;vertical-align:-1px;}
+.leaverow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:11px 12px;border-top:1px solid var(--line);}
+.leaverow:first-of-type{border-top:none;}
+.badge{font-size:10px;font-weight:800;padding:2px 8px;border-radius:10px;margin-left:6px;vertical-align:1px;}
+.badge.pending{background:var(--yellowbg);color:var(--yellow);}
+.badge.approved{background:var(--greenbg);color:var(--green);}
+.approvebtn{background:var(--greenbg);color:var(--green);border:none;border-radius:9px;padding:6px 9px;font-size:11.5px;font-weight:800;}
+.conflictbox{background:var(--redbg);border:1px solid #F3C2C2;color:var(--red);border-radius:10px;padding:9px 11px;font-size:12px;margin-top:12px;line-height:1.5;}
+.hintbox{background:var(--yellowbg);border:1px solid #EEDFAF;color:var(--yellow);border-radius:10px;padding:8px 10px;font-size:12px;margin-top:8px;line-height:1.5;}
+.quickbar{display:flex;gap:8px;margin-bottom:12px;}
+.quickbtn{flex:1;background:#fff;border:1.5px solid var(--line);border-radius:11px;padding:10px 8px;font-size:12px;font-weight:800;color:var(--navy);}
+.fab{position:fixed;left:50%;transform:translateX(calc(-215px + 350px));bottom:78px;background:var(--navy);color:#fff;border:none;width:52px;height:52px;border-radius:50%;font-size:24px;box-shadow:0 6px 16px rgba(31,56,100,.4);z-index:15;}
+@media(max-width:430px){.fab{right:18px;left:auto;transform:none;}}
+.bottomnav{position:sticky;bottom:0;display:flex;background:#fff;border-top:1px solid var(--line);z-index:20;}
+.navbtn{flex:1;border:none;background:none;padding:9px 2px 8px;font-size:10px;color:var(--sub);font-weight:700;display:flex;flex-direction:column;align-items:center;gap:2px;}
+.navbtn .ic{font-size:18px;}
+.navbtn.active{color:var(--navy);}
+.overlay{position:fixed;inset:0;background:rgba(20,26,40,.45);display:none;align-items:flex-end;justify-content:center;z-index:50;}
+.overlay.show{display:flex;}
+.sheet{background:#fff;width:100%;max-width:430px;border-radius:18px 18px 0 0;max-height:88vh;overflow-y:auto;padding:16px 16px 22px;animation:up .18s ease-out;}
+@keyframes up{from{transform:translateY(30px);opacity:.4;}to{transform:translateY(0);opacity:1;}}
+.sheet h3{margin:0 0 3px;font-size:16px;}
+.sheet .subline{color:var(--sub);font-size:12.5px;margin-bottom:14px;}
+.sectionlabel{font-size:11.5px;font-weight:800;color:var(--sub);text-transform:uppercase;letter-spacing:.4px;margin:14px 0 6px;}
+.pillrow{display:flex;flex-wrap:wrap;gap:8px;}
+.pill{border:1.5px solid var(--line);background:#fff;border-radius:10px;padding:8px 12px;font-size:12.5px;font-weight:700;color:var(--text);}
+.pill.selK{border-color:var(--green);background:var(--greenbg);color:var(--green);}
+.pill.selLeave{border-color:var(--red);background:var(--redbg);color:var(--red);}
+.pill.selOff{border-color:var(--grey);background:var(--greybg);color:var(--grey);}
+.pill.selHalf{border-color:var(--yellow);background:var(--yellowbg);color:var(--yellow);}
+.pill.selBreak{border-color:var(--orange);background:var(--orangebg);color:var(--orange);}
+.pill.selSite{border-color:var(--teal);background:var(--tealbg);color:var(--teal);}
+.presetbtn{border:1px solid var(--line);background:#fafbfd;border-radius:10px;padding:8px 10px;font-size:12px;font-weight:600;text-align:left;}
+.presetbtn b{color:var(--navy);}
+.timerow{display:flex;gap:8px;align-items:center;margin-top:8px;}
+.timerow input[type=time]{flex:1;border:1px solid var(--line);border-radius:9px;padding:8px;font-size:13px;}
+.addsegbtn{background:var(--navy);color:#fff;border:none;border-radius:9px;padding:8px 12px;font-size:12.5px;font-weight:700;white-space:nowrap;}
+.segchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.segchip{background:#EEF1F8;border-radius:20px;padding:6px 10px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px;}
+.segchip button{border:none;background:#D9DEEA;color:#444;border-radius:50%;width:16px;height:16px;font-size:10px;line-height:1;}
+.txtin{width:100%;border:1px solid var(--line);border-radius:9px;padding:9px;font-size:13px;margin-top:4px;font-family:inherit;}
+.sheetbtns{display:flex;gap:10px;margin-top:18px;}
+.btn{flex:1;border:none;border-radius:11px;padding:12px;font-weight:800;font-size:14px;}
+.btn.primary{background:var(--navy);color:#fff;}
+.btn.ghost{background:var(--greybg);color:var(--text);}
+.btn.danger{background:var(--redbg);color:var(--red);}
+.closesheet{position:absolute;right:14px;top:14px;background:var(--greybg);border:none;width:28px;height:28px;border-radius:50%;font-size:14px;color:var(--sub);}
+.selectbox{width:100%;border:1px solid var(--line);border-radius:9px;padding:9px;font-size:13.5px;margin-top:4px;background:#fff;}
+.menuitem{display:flex;align-items:center;gap:12px;padding:13px 4px;border-top:1px solid var(--line);font-size:14px;font-weight:600;width:100%;background:none;border-left:none;border-right:none;border-bottom:none;text-align:left;}
+.menuitem:first-child{border-top:none;}
+.menuitem .ic{font-size:18px;width:22px;}
+.menuitem.dangertext{color:var(--red);}
+.poster{background:#fff;border-radius:14px;border:1px solid var(--line);overflow:hidden;}
+.poster-title{background:var(--navy);color:#fff;text-align:center;font-weight:900;font-size:16px;padding:12px;letter-spacing:.5px;}
+.poster-date{display:flex;justify-content:center;gap:10px;padding:8px;background:#F0F2F7;font-size:13px;font-weight:700;}
+.poster-dept{color:#fff;font-weight:800;font-size:12.5px;padding:7px 12px;}
+.poster-row{display:flex;justify-content:space-between;padding:8px 12px;border-top:1px solid var(--line);font-size:12.5px;}
+.poster-row b{font-weight:700;}
+.sharebtns{display:flex;gap:10px;margin-top:12px;}
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#20242C;color:#fff;padding:9px 16px;border-radius:20px;font-size:12.5px;font-weight:600;z-index:80;opacity:0;transition:opacity .25s;pointer-events:none;}
+.toast.show{opacity:1;}
+.toast.action{pointer-events:auto;}
+.select-daybar{display:flex;gap:6px;overflow-x:auto;margin-bottom:12px;}
+.help{background:#EAF1FF;border:1px solid #CFE0FF;border-radius:12px;padding:10px 12px;font-size:12px;color:#2A4A7A;margin-bottom:12px;line-height:1.5;}
+.breakbox{background:var(--orangebg);border:1px solid #F3D2B3;border-radius:12px;padding:10px 12px;margin-top:8px;}
+.breakbox .sectionlabel{color:var(--orange);margin-top:0;}
+@media print{
+  #phone > .topbar, #phone > .daystrip, #phone > .bottomnav, .fab, .noprint{display:none !important;}
+  .content{padding:0 !important;}
+  body{background:#fff;}
+}
+</style>
+</head>
+<body>
+<div id="phone">
+  <div class="topbar">
+    <div class="topbar-row1">
+      <div class="appname">🗓️ Duty Roster</div>
+      <button class="menubtn" id="menuBtn">⋮</button>
+    </div>
+    <div class="weeknav">
+      <button id="prevWeek">‹</button>
+      <div class="weekrange" id="weekRangeLabel">—</div>
+      <button id="nextWeek">›</button>
+      <button class="todaybtn" id="todayBtn">Today</button>
+    </div>
+  </div>
+  <div class="daystrip" id="dayStrip"></div>
+  <div class="content" id="content"></div>
+  <button class="fab" id="fabAdd">＋</button>
+  <div class="bottomnav">
+    <button class="navbtn active" data-tab="day"><span class="ic">📋</span>Roster</button>
+    <button class="navbtn" data-tab="week"><span class="ic">🗂️</span>Week</button>
+    <button class="navbtn" data-tab="leave"><span class="ic">🏖️</span>Leave</button>
+    <button class="navbtn" data-tab="staff"><span class="ic">👥</span>Staff</button>
+    <button class="navbtn" data-tab="share"><span class="ic">📤</span>Share</button>
+  </div>
+</div>
+
+<div class="overlay" id="shiftOverlay">
+  <div class="sheet">
+    <button class="closesheet" data-close="shiftOverlay">✕</button>
+    <h3 id="shiftSheetName">Staff — Day</h3>
+    <div class="subline" id="shiftSheetSub"></div>
+    <div class="sectionlabel">Status</div>
+    <div class="pillrow" id="kindPills"></div>
+    <div class="hintbox" id="dayLeaveHint" style="display:none;"></div>
+    <div id="siteSection" style="display:none;">
+      <div class="sectionlabel">Kaunsi Site Par?</div>
+      <div class="pillrow" id="sitePills"></div>
+      <input class="txtin" id="siteCustomInput" placeholder="Ya naya site ka naam likhein">
+    </div>
+    <div id="breakSection" style="display:none;">
+      <div class="breakbox">
+        <div class="sectionlabel">🔶 Break Duty — Pehla Time (subah wali pari)</div>
+        <div class="timerow" style="margin-top:0;">
+          <input type="time" id="brk1Start" value="06:00">
+          <span style="color:var(--sub);font-size:12px;">to</span>
+          <input type="time" id="brk1End" value="12:00">
+        </div>
+        <div class="sectionlabel" style="margin-top:12px;">🔶 Doosra Time (break ke baad wali pari)</div>
+        <div class="timerow" style="margin-top:0;">
+          <input type="time" id="brk2Start" value="16:00">
+          <span style="color:var(--sub);font-size:12px;">to</span>
+          <input type="time" id="brk2End" value="21:00">
+        </div>
+      </div>
+    </div>
+    <div id="halfSection" style="display:none;">
+      <div class="breakbox" style="background:var(--yellowbg);border-color:#EEDFAF;">
+        <div class="sectionlabel" style="color:var(--yellow);margin-top:0;">🌗 Half Day — Time</div>
+        <div class="timerow" style="margin-top:0;">
+          <input type="time" id="hlfStart" value="06:00">
+          <span style="color:var(--sub);font-size:12px;">to</span>
+          <input type="time" id="hlfEnd" value="12:00">
+        </div>
+      </div>
+    </div>
+    <div id="timeSection">
+      <div class="sectionlabel">Full Day / Custom — shift chunein ya time daalein</div>
+      <div class="pillrow" id="presetPills"></div>
+      <div class="timerow">
+        <input type="time" id="segStart" value="09:00">
+        <span style="color:var(--sub);font-size:12px;">to</span>
+        <input type="time" id="segEnd" value="17:00">
+        <button class="addsegbtn" id="addSegBtn">+ Add</button>
+      </div>
+      <div class="segchips" id="segChips"></div>
+    </div>
+    <div class="sectionlabel">Department (do ya zyada bhi select kar sakte hain)</div>
+    <div class="pillrow" id="shiftDeptPills"></div>
+    <div class="sectionlabel">Role</div>
+    <select class="selectbox" id="shiftRoleSelect"></select>
+    <div class="sectionlabel">Notes (optional)</div>
+    <input class="txtin" id="entryNotes" placeholder="e.g. Main Kitchen / late aayegi / reason">
+    <div class="hintbox" id="hoursInfo" style="display:none;background:var(--greenbg);border-color:#BFE3C6;color:var(--green);font-weight:800;"></div>
+    <div class="sheetbtns">
+      <button class="btn ghost" id="clearEntryBtn">Clear</button>
+      <button class="btn primary" id="saveEntryBtn">Save</button>
+    </div>
+    <button class="btn ghost" id="saveWeekBtn" style="width:100%;margin-top:8px;">📅 Save + Pure Week Me Lagao (Mon–Sun)</button>
+  </div>
+</div>
+
+<div class="overlay" id="staffOverlay">
+  <div class="sheet">
+    <button class="closesheet" data-close="staffOverlay">✕</button>
+    <h3 id="staffSheetTitle">Add Staff</h3>
+    <div class="subline">Naam, role aur department bharein</div>
+    <div class="sectionlabel">Naam</div>
+    <input class="txtin" id="staffNameInput" placeholder="Staff ka naam">
+    <div class="sectionlabel">Role</div>
+    <select class="selectbox" id="staffRoleSelect"></select>
+    <div class="sectionlabel">Department</div>
+    <select class="selectbox" id="staffDeptSelect"></select>
+    <div class="sheetbtns">
+      <button class="btn danger" id="deleteStaffBtn" style="display:none;">Delete</button>
+      <button class="btn primary" id="saveStaffBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="leaveOverlay">
+  <div class="sheet">
+    <button class="closesheet" data-close="leaveOverlay">✕</button>
+    <h3 id="leaveSheetTitle">Leave Request</h3>
+    <div class="subline">Pehle se chhutti book karein — koi confusion nahi hoga</div>
+    <div class="sectionlabel">Staff</div>
+    <select class="selectbox" id="leaveStaffSelect"></select>
+    <div class="sectionlabel">Kis Din Se</div>
+    <input type="date" class="txtin" id="leaveFrom">
+    <div class="sectionlabel">Kis Din Tak (optional — ek hi din ho to khali chhodein)</div>
+    <input type="date" class="txtin" id="leaveTo">
+    <div class="sectionlabel">Reason / Note (optional)</div>
+    <input class="txtin" id="leaveNote" placeholder="e.g. Gaon jana hai / shaadi / doctor">
+    <div class="conflictbox" id="leaveConflict" style="display:none;"></div>
+    <div class="sheetbtns">
+      <button class="btn danger" id="leaveDeleteBtn" style="display:none;">Delete</button>
+      <button class="btn ghost" id="leavePendingBtn">Save (Pending)</button>
+      <button class="btn primary" id="leaveApproveBtn">Approve ✓</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="presetOverlay">
+  <div class="sheet">
+    <button class="closesheet" data-close="presetOverlay">✕</button>
+    <h3 id="presetSheetTitle">Add Shift</h3>
+    <div class="subline">Shift ka naam aur time set karein (e.g. Morning, Evening, Night)</div>
+    <div class="sectionlabel">Shift Ka Naam</div>
+    <input class="txtin" id="presetNameInput" placeholder="e.g. Morning / Subah Wali">
+    <div class="sectionlabel">Time</div>
+    <div class="timerow" style="margin-top:0;">
+      <input type="time" id="presetStartInput" value="09:00">
+      <span style="color:var(--sub);font-size:12px;">to</span>
+      <input type="time" id="presetEndInput" value="17:00">
+    </div>
+    <div class="sheetbtns">
+      <button class="btn danger" id="presetDeleteBtn" style="display:none;">Delete</button>
+      <button class="btn primary" id="presetSaveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="menuOverlay">
+  <div class="sheet">
+    <button class="closesheet" data-close="menuOverlay">✕</button>
+    <h3>Menu</h3>
+    <div class="subline">Extra tools</div>
+    <button class="menuitem" id="mastersBtn"><span class="ic">⚙️</span> Masters — Shift / Role / Department</button>
+    <button class="menuitem" id="copyPrevWeekBtn"><span class="ic">📆</span> Copy Previous Week (khali din bhar do)</button>
+    <button class="menuitem" id="exportBtn"><span class="ic">⬇️</span> Backup Save Karein (JSON download)</button>
+    <button class="menuitem" id="importBtn"><span class="ic">⬆️</span> Backup Se Restore Karein</button>
+    <input type="file" id="importFile" accept="application/json" style="display:none;">
+    <button class="menuitem dangertext" id="resetBtn"><span class="ic">🗑️</span> Sab Data Reset Karein</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+"use strict";
+
+var DEFAULT_DEPTS = [
+  {id:"kitchen", label:"Kitchen — Cook & Housekeeping", color:"#ED7D31"},
+  {id:"counter", label:"Counter Service", color:"#548235"},
+  {id:"patient", label:"Patient Service", color:"#2E75B6"},
+  {id:"maid", label:"Maid & Helper Service", color:"#7030A0"},
+  {id:"manager", label:"Manager", color:"#C00000"}
+];
+var DEFAULT_ROLES = ["Cook","Kitchen Helper","Counter Cook","Counter Service Boy","Patient Service Staff","Maid/Helper","Manager"];
+var DEFAULT_PRESETS = [
+  {id:"sp1", name:"Morning", start:"06:30", end:"16:30"},
+  {id:"sp2", name:"Evening", start:"11:00", end:"21:30"},
+  {id:"sp3", name:"General", start:"09:00", end:"19:00"}
+];
+var DEPT_COLORS = ["#ED7D31","#548235","#2E75B6","#7030A0","#C00000","#00838F","#AD1457","#4E342E","#37474F","#827717","#006064","#5D4037"];
+var FIXED_CODE = {kitchen:"KIT", counter:"CNT", patient:"PAT", maid:"MAID", manager:"MGR"};
+
+var KIND_LABEL = {shift:"", leave:"Leave", off:"Off", halfday:"Half Day", break:"Break Duty", othersite:"Other Site Duty"};
+var KIND_ORDER = ["shift","leave","off","halfday","break","othersite"];
+var KIND_NAME  = {shift:"Full Day", leave:"Leave", off:"Off", halfday:"Half Day", break:"Break Duty", othersite:"Other Site"};
+var SITES = ["BMS","SSV","ASH","DHS"];
+
+var DAY_NAMES = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+var DAY_NAMES_FULL = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+var MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+var STORAGE_KEY = "dutyRosterAppV1";
+
+var DEPT_MAP = {};
+var state = loadState();
+refreshDeptMap();
+saveState(); /* migration turant persist ho */
+var viewWeekMonday = getMonday(new Date());
+var selectedDate = ymd(new Date());
+var activeTab = "day";
+var editingCtx = null;
+var editingStaffId = null;
+var editingLeaveId = null;
+var editingPresetId = null;
+var currentSegments = [];
+var currentKind = "shift";
+var currentSite = "";
+var currentDepts = [];
+var shareMode = "day";
+var undoShifts = null;
+
+function deepCopy(o){ return JSON.parse(JSON.stringify(o)); }
+function defaultState(){
+  return { staff: [], shifts: {}, depts: deepCopy(DEFAULT_DEPTS), roles: DEFAULT_ROLES.slice(), leaves: [], shiftPresets: deepCopy(DEFAULT_PRESETS) };
+}
+function migrateState(parsed){
+  if(!parsed.staff) parsed.staff = [];
+  if(!parsed.shifts) parsed.shifts = {};
+  if(!parsed.depts || !parsed.depts.length){
+    parsed.depts = deepCopy(DEFAULT_DEPTS);
+  }
+  if(!parsed.roles || !parsed.roles.length){
+    var roles = [];
+    parsed.depts.forEach(function(d){
+      (d.roles||[]).forEach(function(r){ if(roles.indexOf(r)===-1) roles.push(r); });
+    });
+    parsed.roles = roles.length ? roles : DEFAULT_ROLES.slice();
+  }
+  if(!parsed.leaves) parsed.leaves = [];
+  if(!parsed.shiftPresets || !parsed.shiftPresets.length){
+    parsed.shiftPresets = deepCopy(DEFAULT_PRESETS);
+  }
+  return parsed;
+}
+function loadState(){
+  try{
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return defaultState();
+    return migrateState(JSON.parse(raw));
+  }catch(e){ return defaultState(); }
+}
+function saveState(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+function refreshDeptMap(){
+  DEPT_MAP = {};
+  state.depts.forEach(function(d){ DEPT_MAP[d.id]=d; });
+}
+function deptCode(id){
+  if(FIXED_CODE[id]) return FIXED_CODE[id];
+  var d = DEPT_MAP[id];
+  if(!d) return "?";
+  var letters = d.label.replace(/[^A-Za-z]/g,"").substring(0,3).toUpperCase();
+  return letters || "DEP";
+}
+function staffById(id){
+  return state.staff.filter(function(x){return x.id===id;})[0] || null;
+}
+function presetById(id){
+  return state.shiftPresets.filter(function(x){return x.id===id;})[0] || null;
+}
+
+function pad2(n){ return n<10 ? "0"+n : ""+n; }
+function ymd(d){ return d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate()); }
+function parseYMD(s){ var p=s.split("-"); return new Date(parseInt(p[0],10), parseInt(p[1],10)-1, parseInt(p[2],10)); }
+function addDays(d, n){ var r=new Date(d); r.setDate(r.getDate()+n); return r; }
+function getMonday(d){
+  var day = d.getDay();
+  var diff = (day===0? -6 : 1-day);
+  return addDays(new Date(d.getFullYear(),d.getMonth(),d.getDate()), diff);
+}
+function fmtShort(d){ return d.getDate()+" "+MONTH_NAMES[d.getMonth()]; }
+function fmtFull(d){ return d.getDate()+" "+MONTH_NAMES[d.getMonth()]+" "+d.getFullYear(); }
+function weekDates(monday){
+  var arr=[];
+  for(var i=0;i<7;i++) arr.push(addDays(monday,i));
+  return arr;
+}
+function keyOf(dateStr, staffId){ return dateStr+"|"+staffId; }
+function to12h(t){
+  var parts = t.split(":"); var h = parseInt(parts[0],10); var m = parts[1];
+  var ap = h>=12 ? "PM" : "AM";
+  var h12 = h%12; if(h12===0) h12=12;
+  return h12+":"+m+" "+ap;
+}
+
+function getEntry(dateStr, staffId){
+  return state.shifts[keyOf(dateStr,staffId)] || null;
+}
+function isEmptyEntry(e){
+  if(!e) return true;
+  if(e.kind !== "shift") return false;
+  return (!e.segments || e.segments.length===0) && (!e.notes || e.notes.trim()==="");
+}
+function entryKind(e){ return e && e.kind ? e.kind : "shift"; }
+function segFull(s){ return s.name ? s.name+" ("+s.label+")" : s.label; }
+function segShort(s){ return s.name ? s.name : s.label; }
+function entryDisplayTextWith(e, staff, segFn, withHours){
+  if(!e) return "";
+  var timeText = (e.segments||[]).map(segFn).join(" + ");
+  var base;
+  if(e.kind==="shift" || !e.kind){
+    base = timeText || "";
+  } else if(e.kind==="othersite"){
+    var siteLabel = (e.site ? e.site : "Other Site") + " Duty";
+    base = timeText ? (timeText+" ("+siteLabel+")") : siteLabel;
+  } else {
+    var kl = KIND_LABEL[e.kind] || "";
+    base = timeText ? (timeText+" ("+kl+")") : kl;
+  }
+  if(base){
+    if(withHours && (e.kind==="shift" || !e.kind || e.kind==="break" || e.kind==="halfday")){
+      var hh = segmentsHours(e.segments);
+      if(hh!=null && hh>0) base += " • " + fmtHours(hh);
+    }
+    return base;
+  }
+  if(staff){
+    var dl = entryDepts(e, staff);
+    var isCross = dl.length > 1 || (dl.length===1 && dl[0] !== staff.dept);
+    if(isCross){
+      return "Working: " + dl.map(function(id){ return DEPT_MAP[id].label; }).join(" + ");
+    }
+  }
+  return "";
+}
+function entryDisplayText(e, staff){ return entryDisplayTextWith(e, staff, segFull, true); }
+function entryDisplayShort(e, staff){ return entryDisplayTextWith(e, staff, segShort, false); }
+function cssKind(e){
+  if(isEmptyEntry(e)) return "empty";
+  return "k-"+entryKind(e);
+}
+
+/* ===== CHRONOLOGY ===== */
+function timeToMin(t){
+  if(!t) return null;
+  var p = t.split(":");
+  var h = parseInt(p[0],10), m = parseInt(p[1],10);
+  if(isNaN(h)||isNaN(m)) return null;
+  return h*60+m;
+}
+function labelToMin(lb){
+  var m = /(\d{1,2}):(\d{2})\s*(AM|PM)/i.exec(lb||"");
+  if(!m) return null;
+  var h = parseInt(m[1],10)%12;
+  if(/pm/i.test(m[3])) h += 12;
+  return h*60+parseInt(m[2],10);
+}
+function segDurMin(seg){
+  var s = timeToMin(seg.start), e = timeToMin(seg.end);
+  if(s==null || e==null){
+    var m = /(\d{1,2}:\d{2}\s*[AP]M)\s*–\s*(\d{1,2}:\d{2}\s*[AP]M)/i.exec(seg.label||"");
+    if(!m) return null;
+    s = labelToMin(m[1]); e = labelToMin(m[2]);
+    if(s==null || e==null) return null;
+  }
+  return (e - s + 1440) % 1440;
+}
+function segmentsHours(segs){
+  var tot = 0, any = false;
+  (segs||[]).forEach(function(sg){
+    var d = segDurMin(sg);
+    if(d!=null){ tot += d; any = true; }
+  });
+  return any ? tot/60 : null;
+}
+function fmtHours(h){
+  var r = Math.round(h*10)/10;
+  return (r%1===0 ? r.toFixed(0) : r.toFixed(1)) + " hr";
+}
+function entryStartMinutes(e){
+  var best = null;
+  ((e&&e.segments)||[]).forEach(function(s){
+    var v = timeToMin(s.start);
+    if(v==null) v = labelToMin(s.label);
+    if(v!=null && (best==null || v<best)) best = v;
+  });
+  return best;
+}
+function chronoKey(ds, s){
+  var e = getEntry(ds, s.id);
+  if(isEmptyEntry(e)) return 5000;
+  var k = entryKind(e);
+  var m = entryStartMinutes(e);
+  if(k==="leave") return 7000;
+  if(k==="off") return 6900;
+  if(m!=null) return m;
+  if(k==="shift") return 3000;
+  return 4000;
+}
+
+function leaveEnd(l){ return l.to || l.from; }
+function leaveCoversDate(l, ds){ return l.from <= ds && ds <= leaveEnd(l); }
+function eachLeaveDate(l, cb){
+  var d = parseYMD(l.from);
+  var end = parseYMD(leaveEnd(l));
+  var guard = 0;
+  while(d <= end && guard < 120){ cb(ymd(d)); d = addDays(d,1); guard++; }
+}
+function leaveById(id){
+  return state.leaves.filter(function(x){return x.id===id;})[0] || null;
+}
+function ownLeaveOn(ds, staffId){
+  return state.leaves.filter(function(l){ return l.staffId===staffId && leaveCoversDate(l, ds); })[0] || null;
+}
+function applyLeaveToRoster(l){
+  var s = staffById(l.staffId);
+  if(!s) return;
+  eachLeaveDate(l, function(ds){
+    state.shifts[keyOf(ds, s.id)] = {kind:"leave", segments:[], notes:(l.note||""), dept:s.dept, depts:[s.dept], role:s.role};
+  });
+}
+function removeLeaveFromRoster(l){
+  eachLeaveDate(l, function(ds){
+    var e = state.shifts[keyOf(ds, l.staffId)];
+    if(e && e.kind==="leave") delete state.shifts[keyOf(ds, l.staffId)];
+  });
+}
+function othersOffOnDate(ds, excludeId){
+  var map = {};
+  state.leaves.forEach(function(l){
+    if(l.staffId===excludeId) return;
+    if(!leaveCoversDate(l, ds)) return;
+    var s = staffById(l.staffId);
+    if(!s) return;
+    map[s.id] = {name:s.name, dept:(DEPT_MAP[s.dept]?DEPT_MAP[s.dept].label:""), what:"Leave — "+(l.status==="approved"?"Approved":"Pending")};
+  });
+  state.staff.forEach(function(s){
+    if(s.id===excludeId || map[s.id]) return;
+    var e = getEntry(ds, s.id);
+    if(e && (e.kind==="leave" || e.kind==="off" || e.kind==="halfday")){
+      map[s.id] = {name:s.name, dept:(DEPT_MAP[s.dept]?DEPT_MAP[s.dept].label:""), what:KIND_NAME[e.kind]};
+    }
+  });
+  return Object.keys(map).map(function(k){ return map[k]; });
+}
+function leaveRangeLabel(l){
+  var f = parseYMD(l.from);
+  if(!l.to || l.to===l.from){
+    return DAY_NAMES_FULL[(f.getDay()+6)%7]+", "+fmtFull(f);
+  }
+  var t = parseYMD(leaveEnd(l));
+  return fmtShort(f)+" – "+fmtFull(t);
+}
+
+function renderWeekLabel(){
+  var dates = weekDates(viewWeekMonday);
+  document.getElementById("weekRangeLabel").innerHTML =
+    fmtShort(dates[0]) + " – " + fmtShort(dates[6]) + "<small>" + dates[0].getFullYear() + "</small>";
+}
+
+function renderDayStrip(){
+  var dates = weekDates(viewWeekMonday);
+  var todayStr = ymd(new Date());
+  var html = "";
+  dates.forEach(function(d,i){
+    var ds = ymd(d);
+    var cls = "daypill" + (ds===selectedDate?" active":"") + (ds===todayStr?" istoday":"");
+    var hasLeave = state.leaves.some(function(l){ return leaveCoversDate(l, ds); });
+    html += '<div class="'+cls+'" data-date="'+ds+'">'+DAY_NAMES[i]+'<span class="dnum">'+d.getDate()+'</span>'+(hasLeave?'<span class="lvdot"></span>':'')+'</div>';
+  });
+  var strip = document.getElementById("dayStrip");
+  strip.innerHTML = html;
+  Array.prototype.forEach.call(strip.querySelectorAll(".daypill"), function(el){
+    el.addEventListener("click", function(){
+      selectedDate = el.getAttribute("data-date");
+      if(activeTab==="masters") activeTab = "day";
+      renderAll();
+    });
+  });
+}
+
+function activeStaffByDept(){
+  var byDept = {};
+  state.depts.forEach(function(d){ byDept[d.id] = []; });
+  state.staff.forEach(function(s){ if(byDept[s.dept]) byDept[s.dept].push(s); });
+  return byDept;
+}
+
+function entryDepts(e, staff){
+  var list = null;
+  if(e && e.depts && e.depts.length){
+    list = e.depts.filter(function(id){ return DEPT_MAP[id]; });
+  } else if(e && e.dept && DEPT_MAP[e.dept]){
+    list = [e.dept];
+  }
+  if(!list || !list.length){
+    list = DEPT_MAP[staff.dept] ? [staff.dept] : (state.depts[0] ? [state.depts[0].id] : []);
+  }
+  return list;
+}
+function effectiveDeptRole(dateStr, staff){
+  var e = getEntry(dateStr, staff.id);
+  var role = (e && e.role) ? e.role : staff.role;
+  return {depts: entryDepts(e, staff), role:role};
+}
+
+function staffByDeptForDate(dateStr){
+  var byDept = {};
+  state.depts.forEach(function(d){ byDept[d.id] = []; });
+  state.staff.forEach(function(s){
+    var er = effectiveDeptRole(dateStr, s);
+    er.depts.forEach(function(dp){
+      if(byDept[dp]) byDept[dp].push({staff:s, role:er.role, homeDept:s.dept, multi:er.depts.length});
+    });
+  });
+  Object.keys(byDept).forEach(function(k){
+    byDept[k].sort(function(a,b){
+      return chronoKey(dateStr, a.staff) - chronoKey(dateStr, b.staff);
+    });
+  });
+  return byDept;
+}
+
+function weekCellData(s, ds, full){
+  var e = getEntry(ds, s.id);
+  var txt = full ? entryDisplayText(e, s) : entryDisplayShort(e, s);
+  var cls = cssKind(e);
+  var short = txt || (cls==="empty"?"—":(KIND_NAME[entryKind(e)]||""));
+  var er = effectiveDeptRole(ds, s);
+  var crossDept = er.depts.length > 1 || (er.depts.length===1 && er.depts[0] !== s.dept);
+  var style = "";
+  if(crossDept){
+    var bc = er.depts.filter(function(id){ return id !== s.dept; })[0] || er.depts[0];
+    if(DEPT_MAP[bc]) style = 'border-left:3px solid '+DEPT_MAP[bc].color+';';
+    short = "["+er.depts.map(deptCode).join("+")+"] " + short;
+  }
+  return {cls:cls, text:short, style:style};
+}
+
+function fillRoleSelect(sel, currentRole){
+  var roles = state.roles.slice();
+  if(currentRole && roles.indexOf(currentRole)===-1) roles.push(currentRole);
+  sel.innerHTML = roles.map(function(r){return '<option value="'+escapeHTML(r)+'">'+escapeHTML(r)+'</option>';}).join("");
+  if(currentRole) sel.value = currentRole;
+}
+function fillDeptSelect(sel, currentDept){
+  sel.innerHTML = state.depts.map(function(d){return '<option value="'+d.id+'">'+escapeHTML(d.label)+'</option>';}).join("");
+  if(currentDept && DEPT_MAP[currentDept]) sel.value = currentDept;
+}
+function fillStaffSelect(sel, currentId){
+  var opts = state.staff.map(function(s){
+    var dl = DEPT_MAP[s.dept] ? DEPT_MAP[s.dept].label : "";
+    return '<option value="'+s.id+'">'+escapeHTML(s.name)+' ('+escapeHTML(dl)+')</option>';
+  });
+  sel.innerHTML = opts.join("");
+  if(currentId) sel.value = currentId;
+}
+
+/* ===== BACKUP REMINDER ===== */
+function backupBannerHTML(){
+  if(!state.staff.length) return "";
+  var today = ymd(new Date());
+  if(state.backupSnooze === today) return "";
+  var last = state.lastBackup;
+  var stale = true;
+  if(last){
+    var diff = (parseYMD(today) - parseYMD(last)) / 86400000;
+    stale = diff >= 7;
+  }
+  if(!stale) return "";
+  return '<div class="conflictbox noprint" id="backupBanner" style="margin:0 0 12px;">💾 <b>Backup le lo!</b> '+
+    (last ? ("Aakhri backup "+fmtShort(parseYMD(last))+" ko liya tha.") : "Abhi tak koi backup nahi liya.")+
+    ' Phone kho jaye ya browser data clear ho to roster wapas nahi aayega.'+
+    '<div class="sharebtns" style="margin-top:8px;">'+
+    '<button class="btn primary" id="bkNowBtn" style="padding:9px;font-size:12.5px;">⬇️ Backup Download</button>'+
+    '<button class="btn ghost" id="bkLaterBtn" style="padding:9px;font-size:12.5px;">Baad me</button>'+
+    '</div></div>';
+}
+function bindBackupBanner(){
+  var now = document.getElementById("bkNowBtn");
+  var later = document.getElementById("bkLaterBtn");
+  if(now) now.addEventListener("click", doExport);
+  if(later) later.addEventListener("click", function(){
+    state.backupSnooze = ymd(new Date());
+    saveState(); renderAll();
+  });
+}
+function doExport(){
+  state.lastBackup = ymd(new Date());
+  var data = JSON.stringify(state, null, 2);
+  var blob = new Blob([data], {type:"application/json"});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url; a.download = "duty-roster-backup-"+ymd(new Date())+".json";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  saveState();
+  renderAll();
+  showToast("Backup file download ho gayi. Ise WhatsApp par khud ko bhej do!");
+}
+
+function renderDayTab(){
+  var c = document.getElementById("content");
+  if(state.staff.length===0){
+    c.innerHTML = emptyStateHTML();
+    bindEmptyState();
+    return;
+  }
+  var byDept = staffByDeptForDate(selectedDate);
+  var html = backupBannerHTML();
+  html += '<div class="quickbar noprint">'+
+    '<button class="quickbtn" id="copyPrevDayBtn">⚡ Kal jaisi duty bhar do</button>'+
+  '</div>';
+  state.depts.forEach(function(dept){
+    var list = byDept[dept.id];
+    if(!list || list.length===0) return;
+    html += '<div class="dept-card"><div class="dept-head" style="background:'+dept.color+'"><span>'+escapeHTML(dept.label)+'</span><span class="cnt">'+list.length+' log</span></div>';
+    list.forEach(function(item){
+      var s = item.staff;
+      var e = getEntry(selectedDate, s.id);
+      var txt = entryDisplayText(e, s);
+      var cls = cssKind(e);
+      var display = txt || (cls==="empty" ? "Set Duty" : (KIND_NAME[entryKind(e)]||"Set Duty"));
+      var roleLine = item.role + (item.homeDept!==dept.id && DEPT_MAP[item.homeDept] ? " • Home: "+DEPT_MAP[item.homeDept].label : "") + (item.multi>1 ? " • Aaj "+item.multi+" dept" : "");
+      html += '<div class="staffrow">'+
+                '<div class="staffinfo"><div class="staffname">'+escapeHTML(s.name)+'</div><div class="staffrole">'+escapeHTML(roleLine)+'</div></div>'+
+                '<button class="chip '+cls+'" data-staff="'+s.id+'">'+escapeHTML(display)+'</button>'+
+              '</div>';
+    });
+    html += '</div>';
+  });
+  c.innerHTML = html;
+  Array.prototype.forEach.call(c.querySelectorAll(".chip"), function(btn){
+    btn.addEventListener("click", function(){
+      openShiftSheet(btn.getAttribute("data-staff"), selectedDate);
+    });
+  });
+  var cpd = document.getElementById("copyPrevDayBtn");
+  if(cpd) cpd.addEventListener("click", fillFromPrevDay);
+  bindBackupBanner();
+}
+
+function fillFromPrevDay(){
+  var prev = ymd(addDays(parseYMD(selectedDate), -1));
+  undoShifts = deepCopy(state.shifts);
+  var filled = 0;
+  state.staff.forEach(function(s){
+    var cur = getEntry(selectedDate, s.id);
+    var pv = getEntry(prev, s.id);
+    if(isEmptyEntry(cur) && !isEmptyEntry(pv)){
+      state.shifts[keyOf(selectedDate, s.id)] = deepCopy(pv);
+      filled++;
+    }
+  });
+  saveState(); renderAll();
+  if(filled){
+    showToast(filled+" staff ki duty kal jaisi lag gayi.", "Undo", undoRestore);
+  } else {
+    undoShifts = null;
+    showToast("Kal ki koi duty nahi mili, ya sab pehle se set hai.");
+  }
+}
+function undoRestore(){
+  if(!undoShifts) return;
+  state.shifts = undoShifts;
+  undoShifts = null;
+  saveState(); renderAll();
+  showToast("Wapas ho gaya ✅");
+}
+
+function emptyStateHTML(){
+  return '<div class="emptystate"><div class="big">🧑‍🍳</div><div><b>Abhi koi staff nahi hai</b><br>Pehle apna staff add karein</div>'+
+         '<button id="emptyAddBtn">+ Staff Add Karein</button><br>'+
+         '<button id="emptyRestoreBtn" class="ghostbtn">⬆️ Purana Backup Restore Karein</button></div>';
+}
+function bindEmptyState(){
+  var b = document.getElementById("emptyAddBtn");
+  if(b) b.addEventListener("click", function(){ openStaffSheet(null); });
+  var r = document.getElementById("emptyRestoreBtn");
+  if(r) r.addEventListener("click", function(){ document.getElementById("importFile").click(); });
+}
+
+function renderWeekTab(){
+  var c = document.getElementById("content");
+  if(state.staff.length===0){ c.innerHTML = emptyStateHTML(); bindEmptyState(); return; }
+  var dates = weekDates(viewWeekMonday);
+  var byDept = activeStaffByDept();
+  var html = '<div class="gridwrap"><table class="wk"><thead><tr><th style="text-align:left;">Staff</th>';
+  dates.forEach(function(d,i){ html += '<th>'+DAY_NAMES[i]+'<br>'+d.getDate()+'</th>'; });
+  html += '</tr></thead><tbody>';
+  state.depts.forEach(function(dept){
+    var list = byDept[dept.id];
+    if(!list || list.length===0) return;
+    html += '<tr class="deptrow"><td colspan="'+(dates.length+1)+'" style="background:'+dept.color+'">'+escapeHTML(dept.label)+'</td></tr>';
+    list.forEach(function(s){
+      html += '<tr><td class="namecell">'+escapeHTML(s.name)+'</td>';
+      dates.forEach(function(d){
+        var ds = ymd(d);
+        var cd = weekCellData(s, ds, false);
+        html += '<td class="cell '+cd.cls+'" style="'+cd.style+'" data-staff="'+s.id+'" data-date="'+ds+'">'+escapeHTML(cd.text)+'</td>';
+      });
+      html += '</tr>';
+    });
+  });
+  html += '</tbody></table></div>';
+  c.innerHTML = html;
+  Array.prototype.forEach.call(c.querySelectorAll("td.cell"), function(td){
+    td.addEventListener("click", function(){
+      openShiftSheet(td.getAttribute("data-staff"), td.getAttribute("data-date"));
+    });
+  });
+}
+
+function renderLeaveTab(){
+  var c = document.getElementById("content");
+  var todayStr = ymd(new Date());
+  var html = '<div class="help">🏖️ <b>Leave Register</b> — Staff pehle se chhutti maange to yaha likh dein. '+
+             'Jab dusra staff usi din ki chhutti maangega, app khud bata dega ki us din pehle se kisne book kiya hai. Koi dispute nahi!</div>';
+  html += '<button class="btn primary" id="addLeaveBtn" style="width:100%;">+ Leave Request Add Karein</button><div style="height:12px;"></div>';
+
+  var upcoming = state.leaves.filter(function(l){ return leaveEnd(l) >= todayStr; });
+  var past = state.leaves.filter(function(l){ return leaveEnd(l) < todayStr; });
+  upcoming.sort(function(a,b){ return a.from < b.from ? -1 : (a.from > b.from ? 1 : 0); });
+  past.sort(function(a,b){ return a.from > b.from ? -1 : (a.from < b.from ? 1 : 0); });
+  if(past.length > 15) past = past.slice(0,15);
+
+  function rowsHTML(list){
+    var h = "";
+    list.forEach(function(l){
+      var s = staffById(l.staffId);
+      var nm = s ? s.name : "(deleted staff)";
+      var dl = s && DEPT_MAP[s.dept] ? DEPT_MAP[s.dept].label : "";
+      var badge = l.status==="approved" ? '<span class="badge approved">Approved</span>' : '<span class="badge pending">Pending</span>';
+      var booked = l.createdAt ? " • Book hui: "+fmtShort(parseYMD(l.createdAt)) : "";
+      var sub = leaveRangeLabel(l) + (dl ? " • "+dl : "") + (l.note ? " • "+l.note : "") + booked;
+      var btns = "";
+      if(l.status!=="approved") btns += '<button class="approvebtn" data-lvapprove="'+l.id+'">✓ Approve</button>';
+      btns += '<button class="iconbtn" data-lvedit="'+l.id+'">✎</button><button class="iconbtn" data-lvdel="'+l.id+'">🗑</button>';
+      h += '<div class="leaverow"><div class="staffinfo"><div class="staffname">'+escapeHTML(nm)+badge+'</div>'+
+           '<div class="staffrole">'+escapeHTML(sub)+'</div></div><div style="white-space:nowrap;">'+btns+'</div></div>';
+    });
+    return h;
+  }
+
+  if(upcoming.length===0 && past.length===0){
+    html += '<div class="emptystate"><div class="big">🏖️</div><div><b>Abhi koi leave request nahi hai</b><br>Jab staff chhutti maange, yaha add kar dein</div></div>';
+  } else {
+    if(upcoming.length){
+      html += '<div class="stafflistcard"><div class="dept-head" style="background:var(--navy)">Aane Wali Chhuttiyan ('+upcoming.length+')</div>'+rowsHTML(upcoming)+'</div>';
+    }
+    if(past.length){
+      html += '<div class="stafflistcard"><div class="dept-head" style="background:#8A93A8">Purani Entries</div>'+rowsHTML(past)+'</div>';
+    }
+  }
+  c.innerHTML = html;
+
+  document.getElementById("addLeaveBtn").addEventListener("click", function(){ openLeaveSheet(null); });
+  Array.prototype.forEach.call(c.querySelectorAll("[data-lvapprove]"), function(b){
+    b.addEventListener("click", function(){
+      var l = leaveById(b.getAttribute("data-lvapprove"));
+      if(!l) return;
+      l.status = "approved";
+      applyLeaveToRoster(l);
+      saveState(); renderAll();
+      showToast("Leave approve ho gayi — roster me lag gayi.");
+    });
+  });
+  Array.prototype.forEach.call(c.querySelectorAll("[data-lvedit]"), function(b){
+    b.addEventListener("click", function(){ openLeaveSheet(b.getAttribute("data-lvedit")); });
+  });
+  Array.prototype.forEach.call(c.querySelectorAll("[data-lvdel]"), function(b){
+    b.addEventListener("click", function(){ deleteLeave(b.getAttribute("data-lvdel")); });
+  });
+}
+
+function deleteLeave(id){
+  var l = leaveById(id);
+  if(!l) return;
+  var s = staffById(l.staffId);
+  if(!confirm((s?s.name:"Staff")+" ki ye leave entry delete karein?"+(l.status==="approved"?" (Roster se bhi hat jayegi)":""))) return;
+  if(l.status==="approved") removeLeaveFromRoster(l);
+  state.leaves = state.leaves.filter(function(x){return x.id!==id;});
+  saveState(); renderAll();
+  showToast("Leave entry delete ho gayi.");
+}
+
+function openLeaveSheet(leaveId){
+  if(state.staff.length===0){ showToast("Pehle staff add karein."); return; }
+  editingLeaveId = leaveId;
+  var l = leaveId ? leaveById(leaveId) : null;
+  document.getElementById("leaveSheetTitle").textContent = l ? "Edit Leave" : "Leave Request";
+  fillStaffSelect(document.getElementById("leaveStaffSelect"), l ? l.staffId : state.staff[0].id);
+  document.getElementById("leaveFrom").value = l ? l.from : selectedDate;
+  document.getElementById("leaveTo").value = (l && l.to && l.to!==l.from) ? l.to : "";
+  document.getElementById("leaveNote").value = l ? (l.note||"") : "";
+  document.getElementById("leaveDeleteBtn").style.display = l ? "block" : "none";
+  updateLeaveConflict();
+  showOverlay("leaveOverlay");
+}
+
+function updateLeaveConflict(){
+  var box = document.getElementById("leaveConflict");
+  var staffId = document.getElementById("leaveStaffSelect").value;
+  var from = document.getElementById("leaveFrom").value;
+  var to = document.getElementById("leaveTo").value || from;
+  if(!from){ box.style.display="none"; return; }
+  if(to < from) to = from;
+  var lines = [];
+  var d = parseYMD(from), end = parseYMD(to), guard = 0;
+  while(d <= end && guard < 60){
+    var ds = ymd(d);
+    var others = othersOffOnDate(ds, staffId);
+    if(editingLeaveId){
+      others = others.filter(function(o){
+        var self = state.leaves.some(function(l){ return l.id===editingLeaveId && staffById(l.staffId) && staffById(l.staffId).name===o.name; });
+        return !self;
+      });
+    }
+    if(others.length){
+      var dd = parseYMD(ds);
+      lines.push("<b>"+fmtShort(dd)+" ("+DAY_NAMES[(dd.getDay()+6)%7]+")</b>: " + others.map(function(o){ return escapeHTML(o.name)+" — "+escapeHTML(o.what); }).join(", "));
+    }
+    d = addDays(d,1); guard++;
+  }
+  if(lines.length){
+    box.innerHTML = "⚠️ <b>Dhyan dein!</b> In dino pehle se chhutti/off book hai:<br>" + lines.join("<br>") +
+                    "<br><i>Soch samajh kar approve karein — kaam par kam log honge.</i>";
+    box.style.display = "block";
+  } else {
+    box.innerHTML = "";
+    box.style.display = "none";
+  }
+}
+["leaveStaffSelect","leaveFrom","leaveTo"].forEach(function(id){
+  var el = document.getElementById(id);
+  el.addEventListener("change", updateLeaveConflict);
+  el.addEventListener("input", updateLeaveConflict);
+});
+
+function saveLeave(status){
+  var staffId = document.getElementById("leaveStaffSelect").value;
+  var from = document.getElementById("leaveFrom").value;
+  if(!staffId || !from){ showToast("Staff aur date select karein."); return; }
+  var to = document.getElementById("leaveTo").value || from;
+  if(to < from){ var t = to; to = from; from = t; }
+  var note = document.getElementById("leaveNote").value.trim();
+  var l;
+  if(editingLeaveId){
+    l = leaveById(editingLeaveId);
+    if(!l) return;
+    if(l.status==="approved") removeLeaveFromRoster(l);
+    l.staffId = staffId; l.from = from; l.to = to; l.note = note; l.status = status;
+  } else {
+    l = {id:"l_"+Date.now()+"_"+Math.floor(Math.random()*1000), staffId:staffId, from:from, to:to, note:note, status:status, createdAt:ymd(new Date())};
+    state.leaves.push(l);
+  }
+  if(status==="approved") applyLeaveToRoster(l);
+  saveState();
+  hideOverlay("leaveOverlay");
+  renderAll();
+  showToast(status==="approved" ? "Leave approve ho gayi — roster me lag gayi." : "Leave request save ho gayi (Pending).");
+}
+document.getElementById("leavePendingBtn").addEventListener("click", function(){ saveLeave("pending"); });
+document.getElementById("leaveApproveBtn").addEventListener("click", function(){ saveLeave("approved"); });
+document.getElementById("leaveDeleteBtn").addEventListener("click", function(){
+  if(!editingLeaveId) return;
+  hideOverlay("leaveOverlay");
+  deleteLeave(editingLeaveId);
+});
+
+/* ===== STAFF TAB (sirf staff) ===== */
+function renderStaffTab(){
+  var c = document.getElementById("content");
+  var byDept = activeStaffByDept();
+  var html = '<div class="help">Yaha se staff add/edit/delete karein — niche ➕ button dabayein. Shift/Role/Department ki lists badalne ke liye upar ⋮ menu me <b>Masters</b> kholein.</div>';
+  var any = false;
+  state.depts.forEach(function(dept){
+    var list = byDept[dept.id];
+    if(!list || list.length===0) return;
+    any = true;
+    html += '<div class="stafflistcard"><div class="dept-head" style="background:'+dept.color+'"><span>'+escapeHTML(dept.label)+'</span><span class="cnt">'+list.length+' log</span></div>';
+    list.forEach(function(s){
+      html += '<div class="staffmanrow"><div class="staffinfo"><div class="staffname">'+escapeHTML(s.name)+'</div><div class="staffrole">'+escapeHTML(s.role)+'</div></div>'+
+              '<div><button class="iconbtn" data-edit="'+s.id+'">✎</button><button class="iconbtn" data-del="'+s.id+'">🗑</button></div></div>';
+    });
+    html += '</div>';
+  });
+  if(!any){ html += emptyStateHTML(); }
+  c.innerHTML = html;
+  Array.prototype.forEach.call(c.querySelectorAll("[data-edit]"), function(b){
+    b.addEventListener("click", function(){ openStaffSheet(b.getAttribute("data-edit")); });
+  });
+  Array.prototype.forEach.call(c.querySelectorAll("[data-del]"), function(b){
+    b.addEventListener("click", function(){ deleteStaff(b.getAttribute("data-del")); });
+  });
+  bindEmptyState();
+}
+
+/* ===== MASTERS VIEW ===== */
+function renderMastersView(){
+  var c = document.getElementById("content");
+  var html = '<div class="help">⚙️ <b>Masters</b> — yaha ki lists poore app me use hoti hain. Shift ko naam do (Morning/Evening) taaki roster me number ki jagah naam dikhe.</div>';
+
+  html += '<div class="stafflistcard"><div class="dept-head" style="background:var(--navy)"><span>⏰ Shift Master</span><button class="headbtn" id="addPresetBtn">+ Add</button></div>';
+  if(!state.shiftPresets.length){
+    html += '<div class="staffmanrow"><div class="staffrole">Koi shift nahi — "+ Add" dabayein</div></div>';
+  }
+  state.shiftPresets.forEach(function(p){
+    html += '<div class="staffmanrow"><div class="staffinfo"><div class="staffname" style="font-size:13.5px;">'+escapeHTML(p.name)+'</div><div class="staffrole">'+to12h(p.start)+' – '+to12h(p.end)+'</div></div>'+
+            '<div><button class="iconbtn" data-editpreset="'+p.id+'">✎</button><button class="iconbtn" data-delpreset="'+p.id+'">🗑</button></div></div>';
+  });
+  html += '</div>';
+
+  html += '<div class="stafflistcard"><div class="dept-head" style="background:var(--navy)"><span>🧩 Role Master</span><button class="headbtn" id="addRoleBtn">+ Add</button></div>';
+  if(!state.roles.length){
+    html += '<div class="staffmanrow"><div class="staffrole">Koi role nahi hai — "+ Add" dabayein</div></div>';
+  }
+  state.roles.forEach(function(r, i){
+    html += '<div class="staffmanrow"><div class="staffname" style="font-size:13.5px;">'+escapeHTML(r)+'</div>'+
+            '<div><button class="iconbtn" data-editrole="'+i+'">✎</button><button class="iconbtn" data-delrole="'+i+'">🗑</button></div></div>';
+  });
+  html += '</div>';
+
+  html += '<div class="stafflistcard"><div class="dept-head" style="background:var(--navy)"><span>🏢 Department Master</span><button class="headbtn" id="addDeptBtn">+ Add</button></div>';
+  state.depts.forEach(function(d, i){
+    html += '<div class="staffmanrow"><div class="staffname" style="font-size:13.5px;"><span class="dot" style="background:'+d.color+'"></span>'+escapeHTML(d.label)+'</div>'+
+            '<div><button class="iconbtn" data-editdept="'+i+'">✎</button><button class="iconbtn" data-deldept="'+i+'">🗑</button></div></div>';
+  });
+  html += '</div>';
+
+  html += '<button class="btn ghost" id="mastersBackBtn" style="width:100%;">← Wapas Roster Par</button>';
+
+  c.innerHTML = html;
+
+  document.getElementById("mastersBackBtn").addEventListener("click", function(){ activeTab = "day"; renderAll(); });
+
+  document.getElementById("addPresetBtn").addEventListener("click", function(){ openPresetSheet(null); });
+  Array.prototype.forEach.call(c.querySelectorAll("[data-editpreset]"), function(b){
+    b.addEventListener("click", function(){ openPresetSheet(b.getAttribute("data-editpreset")); });
+  });
+  Array.prototype.forEach.call(c.querySelectorAll("[data-delpreset]"), function(b){
+    b.addEventListener("click", function(){
+      var p = presetById(b.getAttribute("data-delpreset"));
+      if(!p) return;
+      if(!confirm('Shift "'+p.name+'" delete karein? (Pehle se lagi duties waise hi rahengi)')) return;
+      state.shiftPresets = state.shiftPresets.filter(function(x){return x.id!==p.id;});
+      saveState(); renderAll();
+      showToast("Shift delete ho gayi.");
+    });
+  });
+
+  document.getElementById("addRoleBtn").addEventListener("click", function(){
+    var name = prompt("Naye role ka naam:");
+    if(!name) return;
+    name = name.trim();
+    if(!name) return;
+    if(state.roles.indexOf(name)!==-1){ showToast("Ye role pehle se hai."); return; }
+    state.roles.push(name);
+    saveState(); renderAll();
+    showToast('Role "'+name+'" add ho gaya.');
+  });
+  Array.prototype.forEach.call(c.querySelectorAll("[data-editrole]"), function(b){
+    b.addEventListener("click", function(){
+      var i = parseInt(b.getAttribute("data-editrole"),10);
+      var oldName = state.roles[i];
+      var name = prompt("Role ka naya naam:", oldName);
+      if(!name) return;
+      name = name.trim();
+      if(!name || name===oldName) return;
+      if(state.roles.indexOf(name)!==-1){ showToast("Ye role pehle se hai."); return; }
+      state.roles[i] = name;
+      state.staff.forEach(function(s){ if(s.role===oldName) s.role = name; });
+      Object.keys(state.shifts).forEach(function(k){ if(state.shifts[k].role===oldName) state.shifts[k].role = name; });
+      saveState(); renderAll();
+      showToast("Role rename ho gaya (sab jagah update).");
+    });
+  });
+  Array.prototype.forEach.call(c.querySelectorAll("[data-delrole]"), function(b){
+    b.addEventListener("click", function(){
+      var i = parseInt(b.getAttribute("data-delrole"),10);
+      var r = state.roles[i];
+      var used = state.staff.filter(function(s){return s.role===r;});
+      if(used.length){ alert('"'+r+'" role '+used.length+' staff ke paas hai ('+used.map(function(s){return s.name;}).join(", ")+'). Pehle unka role badlein, phir delete karein.'); return; }
+      if(!confirm('Role "'+r+'" delete karein?')) return;
+      state.roles.splice(i,1);
+      saveState(); renderAll();
+      showToast("Role delete ho gaya.");
+    });
+  });
+
+  document.getElementById("addDeptBtn").addEventListener("click", function(){
+    var name = prompt("Naye department ka naam:");
+    if(!name) return;
+    name = name.trim();
+    if(!name) return;
+    var exists = state.depts.some(function(d){return d.label.toLowerCase()===name.toLowerCase();});
+    if(exists){ showToast("Ye department pehle se hai."); return; }
+    var usedColors = state.depts.map(function(d){return d.color;});
+    var color = DEPT_COLORS.filter(function(cl){return usedColors.indexOf(cl)===-1;})[0] || DEPT_COLORS[state.depts.length % DEPT_COLORS.length];
+    state.depts.push({id:"d_"+Date.now()+"_"+Math.floor(Math.random()*1000), label:name, color:color});
+    refreshDeptMap();
+    saveState(); renderAll();
+    showToast('Department "'+name+'" add ho gaya.');
+  });
+  Array.prototype.forEach.call(c.querySelectorAll("[data-editdept]"), function(b){
+    b.addEventListener("click", function(){
+      var i = parseInt(b.getAttribute("data-editdept"),10);
+      var d = state.depts[i];
+      var name = prompt("Department ka naya naam:", d.label);
+      if(!name) return;
+      name = name.trim();
+      if(!name || name===d.label) return;
+      d.label = name;
+      refreshDeptMap();
+      saveState(); renderAll();
+      showToast("Department rename ho gaya.");
+    });
+  });
+  Array.prototype.forEach.call(c.querySelectorAll("[data-deldept]"), function(b){
+    b.addEventListener("click", function(){
+      var i = parseInt(b.getAttribute("data-deldept"),10);
+      var d = state.depts[i];
+      var used = state.staff.filter(function(s){return s.dept===d.id;});
+      if(used.length){ alert('"'+d.label+'" me '+used.length+' staff hain ('+used.map(function(s){return s.name;}).join(", ")+'). Pehle unka department badlein, phir delete karein.'); return; }
+      if(!confirm('Department "'+d.label+'" delete karein?')) return;
+      state.depts.splice(i,1);
+      refreshDeptMap();
+      saveState(); renderAll();
+      showToast("Department delete ho gaya.");
+    });
+  });
+}
+
+/* ===== SHIFT PRESET SHEET ===== */
+function openPresetSheet(id){
+  editingPresetId = id;
+  var p = id ? presetById(id) : null;
+  document.getElementById("presetSheetTitle").textContent = p ? "Edit Shift" : "Add Shift";
+  document.getElementById("presetNameInput").value = p ? p.name : "";
+  document.getElementById("presetStartInput").value = p ? p.start : "09:00";
+  document.getElementById("presetEndInput").value = p ? p.end : "17:00";
+  document.getElementById("presetDeleteBtn").style.display = p ? "block" : "none";
+  showOverlay("presetOverlay");
+}
+document.getElementById("presetSaveBtn").addEventListener("click", function(){
+  var name = document.getElementById("presetNameInput").value.trim();
+  var start = document.getElementById("presetStartInput").value;
+  var end = document.getElementById("presetEndInput").value;
+  if(!name){ showToast("Shift ka naam likhein (e.g. Morning)."); return; }
+  if(!start || !end){ showToast("Start aur end time chunein."); return; }
+  if(editingPresetId){
+    var p = presetById(editingPresetId);
+    if(p){ p.name = name; p.start = start; p.end = end; }
+  } else {
+    state.shiftPresets.push({id:"sp_"+Date.now()+"_"+Math.floor(Math.random()*1000), name:name, start:start, end:end});
+  }
+  saveState();
+  hideOverlay("presetOverlay");
+  renderAll();
+  showToast('Shift "'+name+'" save ho gayi.');
+});
+document.getElementById("presetDeleteBtn").addEventListener("click", function(){
+  if(!editingPresetId) return;
+  var p = presetById(editingPresetId);
+  if(!p) return;
+  if(!confirm('Shift "'+p.name+'" delete karein?')) return;
+  state.shiftPresets = state.shiftPresets.filter(function(x){return x.id!==editingPresetId;});
+  saveState();
+  hideOverlay("presetOverlay");
+  renderAll();
+  showToast("Shift delete ho gayi.");
+});
+
+/* ============ SHARE TAB (Day / Week) ============ */
+function bindShareMode(c){
+  Array.prototype.forEach.call(c.querySelectorAll("[data-sharemode]"), function(b){
+    b.addEventListener("click", function(){
+      shareMode = b.getAttribute("data-sharemode");
+      renderShareTab();
+    });
+  });
+}
+
+function buildWeekPosterHTML(){
+  var dates = weekDates(viewWeekMonday);
+  var byDept = activeStaffByDept();
+  var html = '<div class="poster" id="posterEl">'+
+    '<div class="poster-title">WEEKLY DUTY SCHEDULE</div>'+
+    '<div class="poster-date">📅 '+fmtShort(dates[0])+' – '+fmtFull(dates[6])+'</div>'+
+    '<div class="gridwrap" style="border:none;border-radius:0;"><table class="wk"><thead><tr><th style="text-align:left;">Staff</th>';
+  dates.forEach(function(d,i){ html += '<th>'+DAY_NAMES[i]+'<br>'+d.getDate()+'</th>'; });
+  html += '</tr></thead><tbody>';
+  var any = false;
+  state.depts.forEach(function(dept){
+    var list = byDept[dept.id];
+    if(!list || list.length===0) return;
+    any = true;
+    html += '<tr class="deptrow"><td colspan="'+(dates.length+1)+'" style="background:'+dept.color+'">'+escapeHTML(dept.label)+'</td></tr>';
+    list.forEach(function(s){
+      html += '<tr><td class="namecell">'+escapeHTML(s.name)+'</td>';
+      dates.forEach(function(d){
+        var cd = weekCellData(s, ymd(d), false);
+        html += '<td class="'+cd.cls+'" style="'+cd.style+'">'+escapeHTML(cd.text)+'</td>';
+      });
+      html += '</tr>';
+    });
+  });
+  if(!any) html += '<tr><td colspan="'+(dates.length+1)+'">Koi staff nahi hai</td></tr>';
+  html += '</tbody></table></div></div>';
+  return html;
+}
+
+function copyWeekText(){
+  var dates = weekDates(viewWeekMonday);
+  var lines = [];
+  lines.push("*WEEKLY DUTY SCHEDULE*");
+  lines.push("Week: "+fmtShort(dates[0])+" – "+fmtFull(dates[6]));
+  lines.push("");
+  var byDept = activeStaffByDept();
+  state.depts.forEach(function(dept){
+    var list = byDept[dept.id];
+    if(!list || list.length===0) return;
+    lines.push("*"+dept.label.toUpperCase()+"*");
+    list.forEach(function(s){
+      lines.push("👤 "+s.name);
+      var texts = dates.map(function(d){ return weekCellData(s, ymd(d), true).text; });
+      var i = 0;
+      while(i < 7){
+        var j = i;
+        while(j+1 < 7 && texts[j+1] === texts[i]) j++;
+        var lbl = (i===j) ? DAY_NAMES[i] : DAY_NAMES[i]+"–"+DAY_NAMES[j];
+        lines.push("   "+lbl+": "+texts[i]);
+        i = j+1;
+      }
+    });
+    lines.push("");
+  });
+  copyToClipboard(lines.join("\n"));
+  showToast("Pura week copy ho gaya! WhatsApp me paste karein.");
+}
+
+var POSTER_BG = {"k-shift":"#E6F4EA","k-leave":"#FDEAEA","k-off":"#EFEFEF","k-halfday":"#FFF6DD","k-break":"#FDECDC","k-othersite":"#E0F2F1","empty":"#FFFFFF"};
+var POSTER_FG = {"k-shift":"#2E7D32","k-leave":"#C62828","k-off":"#616161","k-halfday":"#B8860B","k-break":"#C65911","k-othersite":"#00695C","empty":"#C9CEDA"};
+
+function posterCellData(s, ds){
+  var e = getEntry(ds, s.id);
+  var kind = cssKind(e);
+  var lines = [];
+  if(isEmptyEntry(e)){
+    lines = ["—"];
+  } else {
+    var er = effectiveDeptRole(ds, s);
+    var cross = er.depts.length > 1 || (er.depts.length===1 && er.depts[0] !== s.dept);
+    var tags = null;
+    if(cross){
+      tags = er.depts.map(function(id){
+        var dp = DEPT_MAP[id];
+        return {label:(dp ? dp.label.trim().split(/\s+/)[0] : String(id)), color:(dp ? dp.color : "#616161")};
+      });
+    }
+    (e.segments||[]).forEach(function(sg){
+      if(sg.name) lines.push(sg.name);
+      lines.push(sg.label);
+    });
+    var k = entryKind(e);
+    if(k==="othersite") lines.push((e.site||"Other Site")+" Duty");
+    else if(k!=="shift") lines.push("("+(KIND_NAME[k]||k)+")");
+    var hh = segmentsHours(e.segments);
+    if(hh!=null && hh>0 && (k==="shift"||k==="break"||k==="halfday")) lines.push(fmtHours(hh));
+    if(!lines.length) lines.push(KIND_NAME[k]||"—");
+    return {lines:lines, kind:kind, tags:tags};
+  }
+  return {lines:lines, kind:kind, tags:null};
+}
+
+function posterRoundRect(ctx, x, y, w, h, r){
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.arcTo(x+w, y, x+w, y+h, r);
+  ctx.arcTo(x+w, y+h, x, y+h, r);
+  ctx.arcTo(x, y+h, x, y, r);
+  ctx.arcTo(x, y, x+w, y, r);
+  ctx.closePath();
+}
+function posterDrawTags(ctx, tags, cx, cy, maxW){
+  var pad = 8, gap = 6, h = 19;
+  function widths(list){
+    ctx.font = "700 12px Arial";
+    return list.map(function(t){ return ctx.measureText(t.label).width + pad*2; });
+  }
+  var labels = tags.map(function(t){ return {label:t.label, color:t.color}; });
+  var ws = widths(labels);
+  var total = ws.reduce(function(a,b){return a+b;},0) + gap*(labels.length-1);
+  if(total > maxW){
+    labels = tags.map(function(t){ return {label:t.label.substring(0,3), color:t.color}; });
+    ws = widths(labels);
+    total = ws.reduce(function(a,b){return a+b;},0) + gap*(labels.length-1);
+  }
+  var x = cx - total/2;
+  labels.forEach(function(t,i){
+    posterRoundRect(ctx, x, cy-h/2, ws[i], h, 9);
+    ctx.fillStyle = t.color;
+    ctx.fill();
+    ctx.fillStyle = "#FFFFFF";
+    ctx.font = "700 12px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText(t.label, x+ws[i]/2, cy+1, ws[i]-4);
+    x += ws[i]+gap;
+  });
+}
+function savePosterCanvas(canvas, fname){
+  function saveUrl(url, revoke){
+    var a = document.createElement("a");
+    a.href = url; a.download = fname;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    if(revoke) URL.revokeObjectURL(url);
+    showToast("Poster image download ho gayi — WhatsApp me photo ki tarah bhej do! 🖼️");
+  }
+  if(canvas.toBlob){
+    canvas.toBlob(function(blob){
+      if(!blob){ showToast("Image nahi ban saki."); return; }
+      saveUrl(URL.createObjectURL(blob), true);
+    }, "image/png");
+  } else {
+    saveUrl(canvas.toDataURL("image/png"), false);
+  }
+}
+function dayPosterLines(s, ds){
+  var e = getEntry(ds, s.id);
+  if(isEmptyEntry(e)) return {lines:["Not Set"], kind:"empty"};
+  var lines = [];
+  (e.segments||[]).forEach(function(sg){
+    lines.push(sg.name ? sg.name+" • "+sg.label : sg.label);
+  });
+  var k = entryKind(e);
+  if(k==="othersite") lines.push((e.site||"Other Site")+" Duty");
+  else if(k!=="shift") lines.push("("+(KIND_NAME[k]||k)+")");
+  var hh = segmentsHours(e.segments);
+  if(hh!=null && hh>0 && (k==="shift"||k==="break"||k==="halfday")) lines.push(fmtHours(hh));
+  if(!lines.length) lines.push(KIND_NAME[k]||"—");
+  return {lines:lines, kind:cssKind(e)};
+}
+function downloadDayPoster(){
+  var ds = selectedDate;
+  var dd = parseYMD(ds);
+  var dayIdx = (dd.getDay()+6)%7;
+  var byDept = staffByDeptForDate(ds);
+  var blocks = [];
+  state.depts.forEach(function(dept){
+    var list = byDept[dept.id];
+    if(!list || !list.length) return;
+    blocks.push({dept:dept, items:list.map(function(it){
+      return {name:it.staff.name, role:it.role + (it.multi>1 ? " • "+it.multi+" dept" : ""), cell:dayPosterLines(it.staff, ds)};
+    })});
+  });
+  if(!blocks.length){ showToast("Pehle staff aur duty set karein."); return; }
+
+  var W = 1080, m = 32, titleH = 132, deptH = 54, footH = 46, lineH = 32, padV = 15;
+  var H = titleH;
+  blocks.forEach(function(b){
+    H += deptH;
+    b.items.forEach(function(it){
+      it.rh = Math.max(70, padV*2 + it.cell.lines.length*lineH);
+      H += it.rh;
+    });
+    H += 10;
+  });
+  H += footH + m;
+  if(H < 1400) H = 1400; /* portrait guarantee */
+
+  var canvas = document.createElement("canvas");
+  var scale = 2;
+  canvas.width = W*scale; canvas.height = H*scale;
+  var ctx = null;
+  try{ ctx = canvas.getContext("2d"); }catch(err){ ctx = null; }
+  if(!ctx){ showToast("Is browser me poster image nahi ban sakti."); return; }
+  ctx.scale(scale, scale);
+
+  ctx.fillStyle = "#F4F6FA"; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle = "#1F3864"; ctx.fillRect(0,0,W,titleH);
+  ctx.fillStyle = "#FFFFFF"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.font = "900 46px Arial";
+  ctx.fillText("DUTY TIMING SCHEDULE", W/2, 54);
+  ctx.font = "600 27px Arial";
+  ctx.fillText(fmtFull(dd)+"  •  "+DAY_NAMES_FULL[dayIdx], W/2, 100);
+
+  var y = titleH + 14;
+  blocks.forEach(function(b){
+    ctx.fillStyle = b.dept.color;
+    ctx.fillRect(m, y, W-m*2, deptH);
+    ctx.fillStyle = "#FFFFFF"; ctx.font = "800 26px Arial"; ctx.textAlign = "left";
+    ctx.fillText(b.dept.label, m+18, y+deptH/2, W-m*2-100);
+    ctx.font = "600 20px Arial"; ctx.textAlign = "right";
+    ctx.fillText(b.items.length+" log", W-m-18, y+deptH/2);
+    y += deptH;
+    b.items.forEach(function(it){
+      var rh = it.rh;
+      ctx.fillStyle = POSTER_BG[it.cell.kind]||"#FFFFFF";
+      ctx.fillRect(m, y, W-m*2, rh);
+      ctx.strokeStyle = "#E3E6EC"; ctx.strokeRect(m+0.5, y+0.5, W-m*2-1, rh-1);
+      ctx.fillStyle = "#20242C"; ctx.font = "800 27px Arial"; ctx.textAlign = "left";
+      ctx.fillText(it.name, m+18, y+rh/2-11, 380);
+      ctx.fillStyle = "#7A8296"; ctx.font = "600 17px Arial";
+      ctx.fillText(it.role, m+18, y+rh/2+15, 380);
+      ctx.fillStyle = POSTER_FG[it.cell.kind]||"#20242C";
+      ctx.textAlign = "right";
+      var total = it.cell.lines.length;
+      var startY = y + rh/2 - (total-1)*lineH/2;
+      it.cell.lines.forEach(function(ln, li){
+        ctx.font = (li===0 ? "800 25px Arial" : "600 22px Arial");
+        ctx.fillText(ln, W-m-18, startY+li*lineH, W-m*2-440);
+      });
+      y += rh;
+    });
+    y += 10;
+  });
+
+  ctx.fillStyle = "#7A8296"; ctx.font = "600 15px Arial"; ctx.textAlign = "center";
+  ctx.fillText("Duty Roster App  •  "+fmtFull(new Date()), W/2, y+20);
+
+  savePosterCanvas(canvas, "roster-"+ds+".png");
+}
+function downloadWeekPoster(){
+  var dates = weekDates(viewWeekMonday);
+  var byDept = activeStaffByDept();
+  var rows = [];
+  state.depts.forEach(function(dept){
+    var list = byDept[dept.id];
+    if(!list || !list.length) return;
+    rows.push({type:"dept", label:dept.label, color:dept.color});
+    list.forEach(function(s){
+      rows.push({type:"staff", name:s.name, role:s.role, cells:dates.map(function(dd){ return posterCellData(s, ymd(dd)); })});
+    });
+  });
+  if(!rows.length){ showToast("Pehle staff aur duty set karein."); return; }
+
+  var nameW = 250, dayW = 215, m = 24;
+  var W = m*2 + nameW + dayW*7;
+  var titleH = 92, headH = 46, deptH = 40, footH = 34;
+  var lineH = 22, padV = 12;
+  var rowHs = rows.map(function(r){
+    if(r.type==="dept") return deptH;
+    var mx = 1;
+    r.cells.forEach(function(c){
+      var t = c.lines.length + (c.tags ? 1 : 0);
+      if(t > mx) mx = t;
+    });
+    return Math.max(58, padV*2 + mx*lineH);
+  });
+  var H = titleH + headH + rowHs.reduce(function(a,b){return a+b;},0) + footH + m;
+
+  var canvas = document.createElement("canvas");
+  var scale = 2;
+  canvas.width = W*scale; canvas.height = H*scale;
+  var ctx = null;
+  try{ ctx = canvas.getContext("2d"); }catch(err){ ctx = null; }
+  if(!ctx){ showToast("Is browser me poster image nahi ban sakti — Print/PDF use karein."); return; }
+  ctx.scale(scale, scale);
+
+  ctx.fillStyle = "#FFFFFF"; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle = "#1F3864"; ctx.fillRect(0,0,W,titleH);
+  ctx.fillStyle = "#FFFFFF"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.font = "900 34px Arial";
+  ctx.fillText("WEEKLY DUTY SCHEDULE", W/2, 36);
+  ctx.font = "600 20px Arial";
+  ctx.fillText(fmtShort(dates[0])+" – "+fmtFull(dates[6]), W/2, 68);
+
+  var y = titleH;
+  ctx.fillStyle = "#F0F2F7"; ctx.fillRect(0,y,W,headH);
+  ctx.fillStyle = "#20242C"; ctx.font = "800 19px Arial";
+  ctx.textAlign = "left";
+  ctx.fillText("STAFF", m+10, y+headH/2);
+  ctx.textAlign = "center";
+  dates.forEach(function(dd,i){
+    var x = m + nameW + dayW*i + dayW/2;
+    ctx.fillText(DAY_NAMES[i]+" "+dd.getDate(), x, y+headH/2);
+  });
+  y += headH;
+
+  rows.forEach(function(r, ri){
+    var rh = rowHs[ri];
+    if(r.type==="dept"){
+      ctx.fillStyle = r.color; ctx.fillRect(m, y, W-m*2, rh);
+      ctx.fillStyle = "#FFFFFF"; ctx.font = "800 19px Arial"; ctx.textAlign = "left";
+      ctx.fillText(r.label, m+10, y+rh/2, W-m*2-20);
+    } else {
+      ctx.fillStyle = "#FAFBFD"; ctx.fillRect(m, y, nameW, rh);
+      ctx.strokeStyle = "#E3E6EC"; ctx.strokeRect(m+0.5, y+0.5, nameW-1, rh-1);
+      ctx.fillStyle = "#20242C"; ctx.font = "800 19px Arial"; ctx.textAlign = "left";
+      ctx.fillText(r.name, m+10, y+rh/2-9, nameW-20);
+      ctx.fillStyle = "#7A8296"; ctx.font = "600 14px Arial";
+      ctx.fillText(r.role||"", m+10, y+rh/2+12, nameW-20);
+      r.cells.forEach(function(c,ci){
+        var x = m + nameW + dayW*ci;
+        ctx.fillStyle = POSTER_BG[c.kind]||"#FFFFFF";
+        ctx.fillRect(x, y, dayW, rh);
+        ctx.strokeStyle = "#E3E6EC"; ctx.strokeRect(x+0.5, y+0.5, dayW-1, rh-1);
+        ctx.textAlign = "center";
+        var total = c.lines.length + (c.tags ? 1 : 0);
+        var startY = y + rh/2 - (total-1)*lineH/2;
+        var off = 0;
+        if(c.tags){
+          posterDrawTags(ctx, c.tags, x+dayW/2, startY, dayW-14);
+          off = 1;
+        }
+        ctx.fillStyle = POSTER_FG[c.kind]||"#20242C";
+        c.lines.forEach(function(ln, li){
+          ctx.font = (li===0 && !c.tags ? "800 17px Arial" : "600 16px Arial");
+          ctx.fillStyle = POSTER_FG[c.kind]||"#20242C";
+          ctx.fillText(ln, x+dayW/2, startY+(li+off)*lineH, dayW-12);
+        });
+      });
+    }
+    y += rh;
+  });
+
+  ctx.fillStyle = "#7A8296"; ctx.font = "600 13px Arial"; ctx.textAlign = "center";
+  ctx.fillText("Duty Roster App  •  "+fmtFull(new Date()), W/2, y+18);
+
+  savePosterCanvas(canvas, "weekly-roster-"+ymd(dates[0])+".png");
+}
+
+function printWeekLandscape(){
+  var st = document.createElement("style");
+  st.id = "printLandscape";
+  st.textContent = "@page{size:A4 landscape;margin:8mm;} @media print{ table.wk{font-size:10px;} table.wk th, table.wk td{padding:4px;} }";
+  document.head.appendChild(st);
+  window.print();
+  var x = document.getElementById("printLandscape");
+  if(x && x.parentNode) x.parentNode.removeChild(x);
+}
+
+function renderShareTab(){
+  var c = document.getElementById("content");
+  var dates = weekDates(viewWeekMonday);
+  var modeHtml = '<div class="pillrow noprint" style="margin-bottom:12px;">'+
+    '<button class="pill'+(shareMode==="day"?" selK":"")+'" data-sharemode="day">📄 Ek Din</button>'+
+    '<button class="pill'+(shareMode==="week"?" selK":"")+'" data-sharemode="week">🗓️ Pura Week</button>'+
+  '</div>';
+
+  if(shareMode==="week"){
+    c.innerHTML = modeHtml +
+      '<div class="sharebtns noprint" style="margin-top:0;">'+
+        '<button class="btn primary" id="posterImgBtn">🖼️ Poster Image</button>'+
+        '<button class="btn ghost" id="copyTextBtn">📋 Text</button>'+
+      '</div><div class="help noprint" style="margin-top:10px;">🖼️ <b>Poster Image</b> dabao — landscape photo download hogi (Mon–Sun pura week), WhatsApp me seedha bhej do.</div><div style="height:4px;"></div>' + buildWeekPosterHTML();
+    bindShareMode(c);
+    document.getElementById("posterImgBtn").addEventListener("click", downloadWeekPoster);
+    document.getElementById("copyTextBtn").addEventListener("click", copyWeekText);
+    return;
+  }
+
+  var pillsHtml = '<div class="select-daybar">';
+  dates.forEach(function(d,i){
+    var ds = ymd(d);
+    pillsHtml += '<div class="daypill'+(ds===selectedDate?" active":"")+'" data-sharedate="'+ds+'" style="cursor:pointer;">'+DAY_NAMES[i]+'<span class="dnum">'+d.getDate()+'</span></div>';
+  });
+  pillsHtml += '</div>';
+
+  var d = parseYMD(selectedDate);
+  var dayIdx = (d.getDay()+6)%7;
+  var byDept = staffByDeptForDate(selectedDate);
+  var poster = '<div class="poster" id="posterEl">'+
+               '<div class="poster-title">DUTY TIMING SCHEDULE</div>'+
+               '<div class="poster-date">📅 '+fmtFull(d)+' &nbsp;•&nbsp; '+DAY_NAMES_FULL[dayIdx]+'</div>';
+  var any=false;
+  state.depts.forEach(function(dept){
+    var list = byDept[dept.id];
+    if(!list || list.length===0) return;
+    any=true;
+    poster += '<div class="poster-dept" style="background:'+dept.color+'">'+escapeHTML(dept.label)+'</div>';
+    list.forEach(function(item){
+      var s = item.staff;
+      var e = getEntry(selectedDate, s.id);
+      var txt = entryDisplayText(e, s) || (isEmptyEntry(e)?"Not Set":(KIND_NAME[entryKind(e)]||"Not Set"));
+      poster += '<div class="poster-row"><b>'+escapeHTML(s.name)+'</b><span>'+escapeHTML(txt)+'</span></div>';
+    });
+  });
+  if(!any) poster += '<div class="poster-row">Koi staff nahi hai</div>';
+  poster += '</div>';
+
+  c.innerHTML = modeHtml + pillsHtml +
+    '<div class="sharebtns noprint" style="margin-top:0;">'+
+      '<button class="btn primary" id="posterDayBtn">🖼️ Poster Image</button>'+
+      '<button class="btn ghost" id="copyTextBtn">📋 Copy as Text</button>'+
+    '</div><div style="height:12px;"></div>' + poster;
+
+  bindShareMode(c);
+  Array.prototype.forEach.call(c.querySelectorAll("[data-sharedate]"), function(el){
+    el.addEventListener("click", function(){ selectedDate = el.getAttribute("data-sharedate"); renderShareTab(); });
+  });
+  document.getElementById("posterDayBtn").addEventListener("click", downloadDayPoster);
+  document.getElementById("copyTextBtn").addEventListener("click", function(){ copyPosterText(d, dayIdx, byDept); });
+}
+
+function copyPosterText(d, dayIdx, byDept){
+  var lines = [];
+  lines.push("*DUTY TIMING SCHEDULE*");
+  lines.push("Date: "+fmtFull(d)+"  ("+DAY_NAMES_FULL[dayIdx]+")");
+  lines.push("");
+  state.depts.forEach(function(dept){
+    var list = byDept[dept.id];
+    if(!list || list.length===0) return;
+    lines.push("*"+dept.label.toUpperCase()+"*");
+    list.forEach(function(item){
+      var s = item.staff;
+      var e = getEntry(selectedDate, s.id);
+      var txt = entryDisplayText(e, s) || (isEmptyEntry(e)?"Not Set":(KIND_NAME[entryKind(e)]||"Not Set"));
+      lines.push(s.name+" — "+txt);
+    });
+    lines.push("");
+  });
+  var text = lines.join("\n");
+  copyToClipboard(text);
+  showToast("Copy ho gaya! WhatsApp me paste kar dein.");
+}
+
+function copyToClipboard(text){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).catch(function(){ fallbackCopy(text); });
+  } else { fallbackCopy(text); }
+}
+function fallbackCopy(text){
+  var ta = document.createElement("textarea");
+  ta.value = text; ta.style.position="fixed"; ta.style.left="-9999px";
+  document.body.appendChild(ta); ta.focus(); ta.select();
+  try{ document.execCommand("copy"); }catch(e){}
+  document.body.removeChild(ta);
+}
+
+function renderAll(){
+  renderWeekLabel();
+  renderDayStrip();
+  if(activeTab==="day") renderDayTab();
+  else if(activeTab==="week") renderWeekTab();
+  else if(activeTab==="leave") renderLeaveTab();
+  else if(activeTab==="staff") renderStaffTab();
+  else if(activeTab==="share") renderShareTab();
+  else if(activeTab==="masters") renderMastersView();
+
+  Array.prototype.forEach.call(document.querySelectorAll(".navbtn"), function(b){
+    b.classList.toggle("active", b.getAttribute("data-tab")===activeTab);
+  });
+  var fab = document.getElementById("fabAdd");
+  fab.style.display = (activeTab==="day"||activeTab==="staff"||activeTab==="leave") ? "block" : "none";
+}
+
+function openShiftSheet(staffId, dateStr){
+  var s = staffById(staffId);
+  if(!s) return;
+  editingCtx = {staffId:staffId, dateStr:dateStr};
+  var e = getEntry(dateStr, staffId) || {kind:"shift", segments:[], notes:""};
+  currentKind = e.kind || "shift";
+  currentSegments = (e.segments||[]).slice();
+  currentSite = e.site || "";
+
+  var d = parseYMD(dateStr);
+  document.getElementById("shiftSheetName").textContent = s.name;
+  document.getElementById("shiftSheetSub").textContent = s.role+" • "+DAY_NAMES_FULL[(d.getDay()+6)%7]+", "+fmtShort(d);
+  document.getElementById("entryNotes").value = e.notes || "";
+
+  /* break duty prefill */
+  var segs = e.segments || [];
+  document.getElementById("brk1Start").value = (segs[0] && segs[0].start) || "06:00";
+  document.getElementById("brk1End").value   = (segs[0] && segs[0].end)   || "12:00";
+  document.getElementById("brk2Start").value = (segs[1] && segs[1].start) || "16:00";
+  document.getElementById("brk2End").value   = (segs[1] && segs[1].end)   || "21:00";
+  document.getElementById("hlfStart").value = (segs[0] && segs[0].start) || "06:00";
+  document.getElementById("hlfEnd").value   = (segs[0] && segs[0].end)   || "12:00";
+
+  currentDepts = entryDepts(e, s).slice();
+  renderShiftDeptPills();
+  fillRoleSelect(document.getElementById("shiftRoleSelect"), e.role || s.role);
+
+  renderKindPills();
+  renderSitePills();
+  updateKindSections();
+  updateDayLeaveHint(dateStr, staffId);
+  renderPresetPills();
+  renderSegChips();
+  updateHoursInfo();
+  showOverlay("shiftOverlay");
+}
+function renderShiftDeptPills(){
+  var wrap = document.getElementById("shiftDeptPills");
+  var html = "";
+  state.depts.forEach(function(dp){
+    var sel = currentDepts.indexOf(dp.id)!==-1;
+    var style = sel ? ' style="border-color:'+dp.color+';background:'+dp.color+';color:#fff;"' : "";
+    html += '<button class="pill"'+style+' data-shiftdept="'+dp.id+'">'+(sel?"✓ ":"")+escapeHTML(dp.label)+'</button>';
+  });
+  wrap.innerHTML = html;
+  Array.prototype.forEach.call(wrap.querySelectorAll("[data-shiftdept]"), function(b){
+    b.addEventListener("click", function(){
+      var id = b.getAttribute("data-shiftdept");
+      var idx = currentDepts.indexOf(id);
+      if(idx===-1){ currentDepts.push(id); }
+      else if(currentDepts.length>1){ currentDepts.splice(idx,1); }
+      else { showToast("Kam se kam ek department selected rehna chahiye."); }
+      renderShiftDeptPills();
+    });
+  });
+}
+function updateDayLeaveHint(dateStr, staffId){
+  var box = document.getElementById("dayLeaveHint");
+  var parts = [];
+  var own = ownLeaveOn(dateStr, staffId);
+  if(own){
+    parts.push("🚫 <b>Is staff ki khud ki leave ("+(own.status==="approved"?"Approved":"Pending")+") is din book hai!</b> Duty lagane se pehle soch lein.");
+  }
+  var others = othersOffOnDate(dateStr, staffId);
+  if(others.length){
+    parts.push("⚠️ Is din pehle se chhutti/off: " + others.map(function(o){ return "<b>"+escapeHTML(o.name)+"</b> ("+escapeHTML(o.what)+")"; }).join(", "));
+  }
+  if(parts.length){
+    box.innerHTML = parts.join("<br>");
+    box.style.display = "block";
+  } else {
+    box.innerHTML = "";
+    box.style.display = "none";
+  }
+}
+function renderKindPills(){
+  var wrap = document.getElementById("kindPills");
+  var cls = {shift:"selK",leave:"selLeave",off:"selOff",halfday:"selHalf",break:"selBreak",othersite:"selSite"};
+  var html = "";
+  KIND_ORDER.forEach(function(k){
+    html += '<button class="pill'+(currentKind===k?" "+cls[k]:"")+'" data-kind="'+k+'">'+KIND_NAME[k]+'</button>';
+  });
+  wrap.innerHTML = html;
+  Array.prototype.forEach.call(wrap.querySelectorAll("[data-kind]"), function(b){
+    b.addEventListener("click", function(){
+      currentKind = b.getAttribute("data-kind");
+      if(currentKind==="othersite" && !currentSite) currentSite = SITES[0];
+      renderKindPills();
+      renderSitePills();
+      updateKindSections();
+      updateHoursInfo();
+    });
+  });
+}
+function updateKindSections(){
+  document.getElementById("siteSection").style.display = (currentKind==="othersite") ? "block" : "none";
+  document.getElementById("breakSection").style.display = (currentKind==="break") ? "block" : "none";
+  document.getElementById("halfSection").style.display = (currentKind==="halfday") ? "block" : "none";
+  document.getElementById("timeSection").style.display = (currentKind==="break"||currentKind==="halfday") ? "none" : "block";
+}
+function renderSitePills(){
+  var wrap = document.getElementById("sitePills");
+  var html = "";
+  SITES.forEach(function(code){
+    html += '<button class="pill'+(currentSite===code?" selSite":"")+'" data-site="'+code+'">'+code+'</button>';
+  });
+  wrap.innerHTML = html;
+  Array.prototype.forEach.call(wrap.querySelectorAll("[data-site]"), function(b){
+    b.addEventListener("click", function(){
+      currentSite = b.getAttribute("data-site");
+      document.getElementById("siteCustomInput").value = "";
+      renderSitePills();
+    });
+  });
+  var customInput = document.getElementById("siteCustomInput");
+  customInput.value = (SITES.indexOf(currentSite)===-1) ? currentSite : "";
+  customInput.oninput = function(){
+    currentSite = customInput.value.trim();
+    renderSitePills();
+    customInput.value = currentSite;
+    customInput.focus();
+  };
+}
+function renderPresetPills(){
+  var wrap = document.getElementById("presetPills");
+  var html = "";
+  state.shiftPresets.forEach(function(p){
+    html += '<button class="presetbtn" data-preset="'+p.id+'"><b>'+escapeHTML(p.name)+'</b> • '+to12h(p.start)+' – '+to12h(p.end)+'</button>';
+  });
+  html += '<button class="presetbtn" id="manageShiftsBtn" style="color:var(--sub);">⚙️ Shifts Manage…</button>';
+  wrap.innerHTML = html;
+  Array.prototype.forEach.call(wrap.querySelectorAll("[data-preset]"), function(b){
+    b.addEventListener("click", function(){
+      var p = presetById(b.getAttribute("data-preset"));
+      if(!p) return;
+      currentSegments.push({start:p.start, end:p.end, name:p.name, label:to12h(p.start)+" – "+to12h(p.end)});
+      renderSegChips();
+    });
+  });
+  var mng = document.getElementById("manageShiftsBtn");
+  if(mng) mng.addEventListener("click", function(){
+    hideOverlay("shiftOverlay");
+    activeTab = "masters";
+    renderAll();
+  });
+}
+function renderSegChips(){
+  var wrap = document.getElementById("segChips");
+  var html = "";
+  currentSegments.forEach(function(seg,i){
+    html += '<div class="segchip">'+escapeHTML(segFull(seg))+' <button data-rmseg="'+i+'">✕</button></div>';
+  });
+  wrap.innerHTML = html;
+  Array.prototype.forEach.call(wrap.querySelectorAll("[data-rmseg]"), function(b){
+    b.addEventListener("click", function(){
+      currentSegments.splice(parseInt(b.getAttribute("data-rmseg"),10),1);
+      renderSegChips();
+    });
+  });
+  if(document.getElementById("hoursInfo")) updateHoursInfo();
+}
+
+document.getElementById("addSegBtn").addEventListener("click", function(){
+  var st = document.getElementById("segStart").value;
+  var en = document.getElementById("segEnd").value;
+  if(!st || !en) return;
+  var label = to12h(st)+" – "+to12h(en);
+  currentSegments.push({start:st,end:en,label:label});
+  renderSegChips();
+});
+
+function breakInputs(){
+  return {
+    s1: document.getElementById("brk1Start").value,
+    e1: document.getElementById("brk1End").value,
+    s2: document.getElementById("brk2Start").value,
+    e2: document.getElementById("brk2End").value
+  };
+}
+function breakInputsOk(){
+  var b = breakInputs();
+  return !!(b.s1 && b.e1 && b.s2 && b.e2);
+}
+function currentSheetHours(){
+  if(currentKind==="leave" || currentKind==="off") return null;
+  if(currentKind==="break"){
+    var b = breakInputs();
+    var segs = [];
+    if(b.s1 && b.e1) segs.push({start:b.s1, end:b.e1});
+    if(b.s2 && b.e2) segs.push({start:b.s2, end:b.e2});
+    return segmentsHours(segs);
+  }
+  if(currentKind==="halfday"){
+    var hs = document.getElementById("hlfStart").value, he = document.getElementById("hlfEnd").value;
+    if(hs && he) return segmentsHours([{start:hs, end:he}]);
+    return null;
+  }
+  return segmentsHours(currentSegments);
+}
+function updateHoursInfo(){
+  var el = document.getElementById("hoursInfo");
+  if(!el) return;
+  var h = currentSheetHours();
+  if(h!=null && h>0){
+    el.textContent = "🕐 Total Duty: " + fmtHours(h);
+    el.style.display = "block";
+  } else {
+    el.style.display = "none";
+  }
+}
+["brk1Start","brk1End","brk2Start","brk2End","hlfStart","hlfEnd"].forEach(function(id){
+  var el = document.getElementById(id);
+  el.addEventListener("input", updateHoursInfo);
+  el.addEventListener("change", updateHoursInfo);
+});
+function buildEntryFromSheet(s){
+  var notes = document.getElementById("entryNotes").value.trim();
+  var deptsVal = currentDepts.slice();
+  if(!deptsVal.length) deptsVal = [s.dept];
+  var roleVal = document.getElementById("shiftRoleSelect").value;
+  var segsOut;
+  if(currentKind === "break"){
+    var b = breakInputs();
+    segsOut = [];
+    if(b.s1 && b.e1) segsOut.push({start:b.s1, end:b.e1, label:to12h(b.s1)+" – "+to12h(b.e1)});
+    if(b.s2 && b.e2) segsOut.push({start:b.s2, end:b.e2, label:to12h(b.s2)+" – "+to12h(b.e2)});
+  } else if(currentKind === "halfday"){
+    var hs = document.getElementById("hlfStart").value, he = document.getElementById("hlfEnd").value;
+    segsOut = [];
+    if(hs && he) segsOut.push({start:hs, end:he, label:to12h(hs)+" – "+to12h(he)});
+  } else {
+    segsOut = currentSegments.slice();
+  }
+  return {kind:currentKind, segments:segsOut, notes:notes, dept:deptsVal[0], depts:deptsVal, role:roleVal, site: currentKind==="othersite" ? currentSite : ""};
+}
+
+function syncLeaveRegisterOnSave(s, ds, entry){
+  if(entry.kind === "leave"){
+    var existing = ownLeaveOn(ds, s.id);
+    if(!existing){
+      state.leaves.push({id:"l_"+Date.now()+"_"+Math.floor(Math.random()*1000), staffId:s.id, from:ds, to:ds, note:(entry.notes||""), status:"approved", createdAt:ymd(new Date()), via:"roster"});
+    } else {
+      existing.status = "approved";
+      if(entry.notes && !existing.note) existing.note = entry.notes;
+    }
+  } else {
+    var own = ownLeaveOn(ds, s.id);
+    if(own && own.from === own.to && own.from === ds){
+      state.leaves = state.leaves.filter(function(l){ return l.id !== own.id; });
+    }
+  }
+}
+
+document.getElementById("saveEntryBtn").addEventListener("click", function(){
+  if(!editingCtx) return;
+  var s = staffById(editingCtx.staffId);
+  if(!s) return;
+  if(currentKind === "break" && !breakInputsOk()){
+    showToast("Break Duty me dono time bharna zaroori hai (pehla + doosra).");
+    return;
+  }
+  if(currentKind === "halfday" && !(document.getElementById("hlfStart").value && document.getElementById("hlfEnd").value)){
+    showToast("Half Day ka time bharein.");
+    return;
+  }
+  var entry = buildEntryFromSheet(s);
+  var ds = editingCtx.dateStr;
+  if(entry.kind !== "leave"){
+    var own = ownLeaveOn(ds, s.id);
+    if(own && own.status === "approved"){
+      if(!confirm(s.name+" ki is din APPROVED leave book hai! Phir bhi duty/status lagayein?")) return;
+    }
+  }
+  var deptChanged = !(entry.depts.length===1 && entry.depts[0]===s.dept) || (entry.role !== s.role);
+  var contentEmpty = isEmptyEntry({kind:entry.kind, segments:entry.segments, notes:entry.notes});
+  if(!contentEmpty || deptChanged){
+    state.shifts[keyOf(ds, editingCtx.staffId)] = entry;
+    syncLeaveRegisterOnSave(s, ds, entry);
+  } else {
+    delete state.shifts[keyOf(ds, editingCtx.staffId)];
+    var ownE = ownLeaveOn(ds, s.id);
+    if(ownE && ownE.from===ownE.to && ownE.from===ds){
+      state.leaves = state.leaves.filter(function(l){ return l.id !== ownE.id; });
+    }
+  }
+  saveState();
+  hideOverlay("shiftOverlay");
+  renderAll();
+});
+document.getElementById("saveWeekBtn").addEventListener("click", function(){
+  if(!editingCtx) return;
+  var s = staffById(editingCtx.staffId);
+  if(!s) return;
+  if(currentKind === "break" && !breakInputsOk()){
+    showToast("Break Duty me dono time bharna zaroori hai (pehla + doosra).");
+    return;
+  }
+  if(currentKind === "halfday" && !(document.getElementById("hlfStart").value && document.getElementById("hlfEnd").value)){
+    showToast("Half Day ka time bharein.");
+    return;
+  }
+  var entry = buildEntryFromSheet(s);
+  var contentEmpty = isEmptyEntry({kind:entry.kind, segments:entry.segments, notes:entry.notes});
+  if(contentEmpty){ showToast("Pehle time ya status set karein, phir week me lagayein."); return; }
+  undoShifts = deepCopy(state.shifts);
+  var mon = getMonday(parseYMD(editingCtx.dateStr));
+  var count = 0;
+  for(var i=0;i<7;i++){
+    var ds = ymd(addDays(mon, i));
+    var ex = getEntry(ds, s.id);
+    if(ds !== editingCtx.dateStr && ex && ex.kind && ex.kind !== "shift"){ continue; }
+    state.shifts[keyOf(ds, s.id)] = deepCopy(entry);
+    count++;
+  }
+  saveState();
+  hideOverlay("shiftOverlay");
+  renderAll();
+  showToast(s.name+" ki duty "+count+" dino me lag gayi ✅", "Undo", undoRestore);
+});
+document.getElementById("clearEntryBtn").addEventListener("click", function(){
+  if(!editingCtx) return;
+  var ds = editingCtx.dateStr;
+  delete state.shifts[keyOf(ds, editingCtx.staffId)];
+  var own = ownLeaveOn(ds, editingCtx.staffId);
+  if(own && own.from===own.to && own.from===ds){
+    state.leaves = state.leaves.filter(function(l){ return l.id !== own.id; });
+  }
+  saveState();
+  hideOverlay("shiftOverlay");
+  renderAll();
+});
+
+function openStaffSheet(staffId){
+  editingStaffId = staffId;
+  var s = staffId ? staffById(staffId) : null;
+  document.getElementById("staffSheetTitle").textContent = s ? "Edit Staff" : "Add Staff";
+  document.getElementById("staffNameInput").value = s ? s.name : "";
+  fillRoleSelect(document.getElementById("staffRoleSelect"), s ? s.role : (state.roles[0]||null));
+  fillDeptSelect(document.getElementById("staffDeptSelect"), s ? s.dept : (state.depts[0]&&state.depts[0].id));
+  document.getElementById("deleteStaffBtn").style.display = s ? "block" : "none";
+  showOverlay("staffOverlay");
+}
+document.getElementById("saveStaffBtn").addEventListener("click", function(){
+  var name = document.getElementById("staffNameInput").value.trim();
+  if(!name){ showToast("Naam daalein"); return; }
+  var dept = document.getElementById("staffDeptSelect").value;
+  var role = document.getElementById("staffRoleSelect").value;
+  if(!dept){ showToast("Pehle department add karein (Masters me)."); return; }
+  if(editingStaffId){
+    var s = staffById(editingStaffId);
+    if(s){ s.name=name; s.dept=dept; s.role=role; }
+  } else {
+    state.staff.push({id:"s_"+Date.now()+"_"+Math.floor(Math.random()*1000), name:name, dept:dept, role:role});
+  }
+  saveState();
+  hideOverlay("staffOverlay");
+  renderAll();
+});
+document.getElementById("deleteStaffBtn").addEventListener("click", function(){
+  if(!editingStaffId) return;
+  if(!confirm("Is staff ko list se hata dein? Purani duty history save rahegi.")) return;
+  state.staff = state.staff.filter(function(x){return x.id!==editingStaffId;});
+  state.leaves = state.leaves.filter(function(l){return l.staffId!==editingStaffId;});
+  saveState();
+  hideOverlay("staffOverlay");
+  renderAll();
+});
+function deleteStaff(id){
+  var s = staffById(id);
+  if(!s) return;
+  if(!confirm('"'+s.name+'" ko delete karein?')) return;
+  state.staff = state.staff.filter(function(x){return x.id!==id;});
+  state.leaves = state.leaves.filter(function(l){return l.staffId!==id;});
+  saveState();
+  renderAll();
+}
+
+document.getElementById("mastersBtn").addEventListener("click", function(){
+  hideOverlay("menuOverlay");
+  activeTab = "masters";
+  renderAll();
+});
+document.getElementById("copyPrevWeekBtn").addEventListener("click", function(){
+  hideOverlay("menuOverlay");
+  if(!confirm("Pichle hafte ka data khali dino me copy ho jayega (jo already bhara hai wo waisa hi rahega). Continue?")) return;
+  undoShifts = deepCopy(state.shifts);
+  var curDates = weekDates(viewWeekMonday);
+  var prevMonday = addDays(viewWeekMonday, -7);
+  var prevDates = weekDates(prevMonday);
+  var filled = 0;
+  state.staff.forEach(function(s){
+    for(var i=0;i<7;i++){
+      var curKey = keyOf(ymd(curDates[i]), s.id);
+      var prevKey = keyOf(ymd(prevDates[i]), s.id);
+      var curEntry = state.shifts[curKey];
+      var prevEntry = state.shifts[prevKey];
+      if(isEmptyEntry(curEntry) && !isEmptyEntry(prevEntry)){
+        state.shifts[curKey] = JSON.parse(JSON.stringify(prevEntry));
+        filled++;
+      }
+    }
+  });
+  saveState();
+  renderAll();
+  if(filled){
+    showToast(filled+" entries copy ho gayi.", "Undo", undoRestore);
+  } else {
+    undoShifts = null;
+    showToast("Copy karne ko kuch nahi mila.");
+  }
+});
+document.getElementById("exportBtn").addEventListener("click", function(){
+  hideOverlay("menuOverlay");
+  doExport();
+});
+document.getElementById("importBtn").addEventListener("click", function(){
+  document.getElementById("importFile").click();
+});
+document.getElementById("importFile").addEventListener("change", function(e){
+  var file = e.target.files[0];
+  if(!file) return;
+  var reader = new FileReader();
+  reader.onload = function(ev){
+    try{
+      var parsed = JSON.parse(ev.target.result);
+      if(!parsed.staff || !parsed.shifts) throw new Error("bad file");
+      state = migrateState(parsed);
+      refreshDeptMap();
+      saveState();
+      hideOverlay("menuOverlay");
+      renderAll();
+      showToast("Backup restore ho gaya.");
+    }catch(err){ showToast("Ye file valid backup nahi hai."); }
+  };
+  reader.readAsText(file);
+  e.target.value = "";
+});
+document.getElementById("resetBtn").addEventListener("click", function(){
+  hideOverlay("menuOverlay");
+  if(!confirm("Sab staff aur roster data hamesha ke liye delete ho jayega. Pakka?")) return;
+  if(!confirm("Ek baar aur confirm karein — sach me sab reset karna hai?")) return;
+  state = defaultState();
+  refreshDeptMap();
+  saveState();
+  renderAll();
+  showToast("Sab reset ho gaya.");
+});
+
+document.getElementById("prevWeek").addEventListener("click", function(){
+  viewWeekMonday = addDays(viewWeekMonday,-7);
+  selectedDate = ymd(viewWeekMonday);
+  renderAll();
+});
+document.getElementById("nextWeek").addEventListener("click", function(){
+  viewWeekMonday = addDays(viewWeekMonday,7);
+  selectedDate = ymd(viewWeekMonday);
+  renderAll();
+});
+document.getElementById("todayBtn").addEventListener("click", function(){
+  viewWeekMonday = getMonday(new Date());
+  selectedDate = ymd(new Date());
+  renderAll();
+});
+document.getElementById("menuBtn").addEventListener("click", function(){ showOverlay("menuOverlay"); });
+document.getElementById("fabAdd").addEventListener("click", function(){
+  if(activeTab==="leave") openLeaveSheet(null);
+  else if(activeTab==="staff" || activeTab==="day") openStaffSheet(null);
+});
+Array.prototype.forEach.call(document.querySelectorAll(".navbtn"), function(b){
+  b.addEventListener("click", function(){ activeTab = b.getAttribute("data-tab"); renderAll(); });
+});
+Array.prototype.forEach.call(document.querySelectorAll("[data-close]"), function(b){
+  b.addEventListener("click", function(){ hideOverlay(b.getAttribute("data-close")); });
+});
+Array.prototype.forEach.call(document.querySelectorAll(".overlay"), function(ov){
+  ov.addEventListener("click", function(e){ if(e.target===ov) hideOverlay(ov.id); });
+});
+function showOverlay(id){ document.getElementById(id).classList.add("show"); }
+function hideOverlay(id){ document.getElementById(id).classList.remove("show"); }
+
+function escapeHTML(str){
+  return String(str).replace(/[&<>"']/g, function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+  });
+}
+var toastTimer=null;
+function showToast(msg, actionLabel, actionFn){
+  var t = document.getElementById("toast");
+  if(actionLabel){
+    t.innerHTML = escapeHTML(msg)+' <button id="toastActionBtn" style="margin-left:8px;background:#fff;color:#20242C;border:none;border-radius:12px;padding:4px 12px;font-weight:800;font-size:12px;">'+escapeHTML(actionLabel)+'</button>';
+    t.classList.add("action");
+    document.getElementById("toastActionBtn").addEventListener("click", function(){
+      t.classList.remove("show","action");
+      if(actionFn) actionFn();
+    });
+  } else {
+    t.textContent = msg;
+    t.classList.remove("action");
+  }
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ t.classList.remove("show","action"); }, actionLabel ? 6000 : 2200);
+}
+
+renderAll();
+
+})();
+</script>
+<script>
+if("serviceWorker" in navigator && location.protocol.indexOf("http")===0){
+  navigator.serviceWorker.register("sw.js").catch(function(){});
+}
+</script>
+</body>
+</html>
