@@ -26,6 +26,7 @@
   --yellow:#B8860B; --yellowbg:#FFF6DD;
   --orange:#C65911; --orangebg:#FDECDC;
   --teal:#00695C; --tealbg:#E0F2F1;
+  --pink:#AD1457; --pinkbg:#FCE4EC;
   --line:#E3E6EC; --card:#FFFFFF; --bg:#F4F6FA; --text:#20242C; --sub:#7A8296;
 }
 *{box-sizing:border-box;}
@@ -66,6 +67,7 @@ html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:
 .chip.k-halfday{background:var(--yellowbg);color:var(--yellow);}
 .chip.k-break{background:var(--orangebg);color:var(--orange);}
 .chip.k-othersite{background:var(--tealbg);color:var(--teal);}
+.chip.k-emergency{background:var(--pinkbg);color:var(--pink);}
 .emptystate{text-align:center;padding:50px 20px;color:var(--sub);}
 .emptystate .big{font-size:40px;margin-bottom:10px;}
 .emptystate button{margin-top:14px;background:var(--navy);color:#fff;border:none;padding:10px 18px;border-radius:10px;font-weight:700;font-size:13.5px;}
@@ -83,6 +85,7 @@ td.k-off{background:var(--greybg);color:var(--grey);}
 td.k-halfday{background:var(--yellowbg);color:var(--yellow);}
 td.k-break{background:var(--orangebg);color:var(--orange);}
 td.k-othersite{background:var(--tealbg);color:var(--teal);}
+td.k-emergency{background:var(--pinkbg);color:var(--pink);}
 td.k-empty{background:#fff;color:#C9CEDA;}
 .stafflistcard{background:var(--card);border-radius:14px;border:1px solid var(--line);margin-bottom:12px;overflow:hidden;}
 .staffmanrow{display:flex;justify-content:space-between;align-items:center;padding:11px 12px;border-top:1px solid var(--line);}
@@ -94,6 +97,8 @@ td.k-empty{background:#fff;color:#C9CEDA;}
 .badge{font-size:10px;font-weight:800;padding:2px 8px;border-radius:10px;margin-left:6px;vertical-align:1px;}
 .badge.pending{background:var(--yellowbg);color:var(--yellow);}
 .badge.approved{background:var(--greenbg);color:var(--green);}
+.badge.emg{background:var(--pinkbg);color:var(--pink);}
+.badge.ded{background:var(--redbg);color:var(--red);}
 .approvebtn{background:var(--greenbg);color:var(--green);border:none;border-radius:9px;padding:6px 9px;font-size:11.5px;font-weight:800;}
 .conflictbox{background:var(--redbg);border:1px solid #F3C2C2;color:var(--red);border-radius:10px;padding:9px 11px;font-size:12px;margin-top:12px;line-height:1.5;}
 .hintbox{background:var(--yellowbg);border:1px solid #EEDFAF;color:var(--yellow);border-radius:10px;padding:8px 10px;font-size:12px;margin-top:8px;line-height:1.5;}
@@ -120,6 +125,7 @@ td.k-empty{background:#fff;color:#C9CEDA;}
 .pill.selHalf{border-color:var(--yellow);background:var(--yellowbg);color:var(--yellow);}
 .pill.selBreak{border-color:var(--orange);background:var(--orangebg);color:var(--orange);}
 .pill.selSite{border-color:var(--teal);background:var(--tealbg);color:var(--teal);}
+.pill.selEmg{border-color:var(--pink);background:var(--pinkbg);color:var(--pink);}
 .presetbtn{border:1px solid var(--line);background:#fafbfd;border-radius:10px;padding:8px 10px;font-size:12px;font-weight:600;text-align:left;}
 .presetbtn b{color:var(--navy);}
 .timerow{display:flex;gap:8px;align-items:center;margin-top:8px;}
@@ -283,6 +289,8 @@ td.k-empty{background:#fff;color:#C9CEDA;}
     <input type="date" class="txtin" id="leaveTo">
     <div class="sectionlabel">Reason / Note (optional)</div>
     <input class="txtin" id="leaveNote" placeholder="e.g. Gaon jana hai / shaadi / doctor">
+    <div class="sectionlabel">Leave Ka Type</div>
+    <div class="pillrow"><button class="pill" id="emgToggle">🚨 Emergency (achanak boli / duty par nahi aaya)</button></div>
     <div class="conflictbox" id="leaveConflict" style="display:none;"></div>
     <div class="sheetbtns">
       <button class="btn danger" id="leaveDeleteBtn" style="display:none;">Delete</button>
@@ -348,9 +356,9 @@ var DEFAULT_PRESETS = [
 var DEPT_COLORS = ["#ED7D31","#548235","#2E75B6","#7030A0","#C00000","#00838F","#AD1457","#4E342E","#37474F","#827717","#006064","#5D4037"];
 var FIXED_CODE = {kitchen:"KIT", counter:"CNT", patient:"PAT", maid:"MAID", manager:"MGR"};
 
-var KIND_LABEL = {shift:"", leave:"Leave", off:"Off", halfday:"Half Day", break:"Break Duty", othersite:"Other Site Duty"};
-var KIND_ORDER = ["shift","leave","off","halfday","break","othersite"];
-var KIND_NAME  = {shift:"Full Day", leave:"Leave", off:"Off", halfday:"Half Day", break:"Break Duty", othersite:"Other Site"};
+var KIND_LABEL = {shift:"", leave:"Leave", emergency:"Emergency Leave", off:"Off", halfday:"Half Day", break:"Break Duty", othersite:"Other Site Duty"};
+var KIND_ORDER = ["shift","leave","emergency","off","halfday","break","othersite"];
+var KIND_NAME  = {shift:"Full Day", leave:"Leave", emergency:"🚨 Emergency", off:"Off", halfday:"Half Day", break:"Break Duty", othersite:"Other Site"};
 var SITES = ["BMS","SSV","ASH","DHS"];
 
 var DAY_NAMES = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
@@ -551,6 +559,7 @@ function chronoKey(ds, s){
   var k = entryKind(e);
   var m = entryStartMinutes(e);
   if(k==="leave") return 7000;
+  if(k==="emergency") return 6950;
   if(k==="off") return 6900;
   if(m!=null) return m;
   if(k==="shift") return 3000;
@@ -574,14 +583,16 @@ function ownLeaveOn(ds, staffId){
 function applyLeaveToRoster(l){
   var s = staffById(l.staffId);
   if(!s) return;
+  var kk = (l.type==="emergency") ? "emergency" : "leave";
   eachLeaveDate(l, function(ds){
-    state.shifts[keyOf(ds, s.id)] = {kind:"leave", segments:[], notes:(l.note||""), dept:s.dept, depts:[s.dept], role:s.role};
+    state.shifts[keyOf(ds, s.id)] = {kind:kk, segments:[], notes:(l.note||""), dept:s.dept, depts:[s.dept], role:s.role};
   });
 }
 function removeLeaveFromRoster(l){
+  var kk = (l.type==="emergency") ? "emergency" : "leave";
   eachLeaveDate(l, function(ds){
     var e = state.shifts[keyOf(ds, l.staffId)];
-    if(e && e.kind==="leave") delete state.shifts[keyOf(ds, l.staffId)];
+    if(e && e.kind===kk) delete state.shifts[keyOf(ds, l.staffId)];
   });
 }
 function othersOffOnDate(ds, excludeId){
@@ -591,12 +602,12 @@ function othersOffOnDate(ds, excludeId){
     if(!leaveCoversDate(l, ds)) return;
     var s = staffById(l.staffId);
     if(!s) return;
-    map[s.id] = {name:s.name, dept:(DEPT_MAP[s.dept]?DEPT_MAP[s.dept].label:""), what:"Leave — "+(l.status==="approved"?"Approved":"Pending")};
+    map[s.id] = {name:s.name, dept:(DEPT_MAP[s.dept]?DEPT_MAP[s.dept].label:""), what:(l.type==="emergency" ? "Emergency Leave" : "Leave — "+(l.status==="approved"?"Approved":"Pending"))};
   });
   state.staff.forEach(function(s){
     if(s.id===excludeId || map[s.id]) return;
     var e = getEntry(ds, s.id);
-    if(e && (e.kind==="leave" || e.kind==="off" || e.kind==="halfday")){
+    if(e && (e.kind==="leave" || e.kind==="emergency" || e.kind==="off" || e.kind==="halfday")){
       map[s.id] = {name:s.name, dept:(DEPT_MAP[s.dept]?DEPT_MAP[s.dept].label:""), what:KIND_NAME[e.kind]};
     }
   });
@@ -609,6 +620,10 @@ function leaveRangeLabel(l){
   }
   var t = parseYMD(leaveEnd(l));
   return fmtShort(f)+" – "+fmtFull(t);
+}
+function monthEndStr(ds){
+  var d = parseYMD(ds);
+  return ymd(new Date(d.getFullYear(), d.getMonth()+1, 0));
 }
 
 function renderWeekLabel(){
@@ -874,11 +889,82 @@ function renderLeaveTab(){
   var c = document.getElementById("content");
   var todayStr = ymd(new Date());
   var html = '<div class="help">🏖️ <b>Leave Register</b> — Staff pehle se chhutti maange to yaha likh dein. '+
-             'Jab dusra staff usi din ki chhutti maangega, app khud bata dega ki us din pehle se kisne book kiya hai. Koi dispute nahi!</div>';
+             'Jab dusra staff usi din ki chhutti maangega, app khud bata dega ki us din pehle se kisne book kiya hai. '+
+             '<b>🚨 Emergency Leave</b>: achanak chhutti ya duty par na aane par lagao — month end tak proof aaya to ✔ Normal, warna ✖ Deduction.</div>';
   html += '<button class="btn primary" id="addLeaveBtn" style="width:100%;">+ Leave Request Add Karein</button><div style="height:12px;"></div>';
 
-  var upcoming = state.leaves.filter(function(l){ return leaveEnd(l) >= todayStr; });
-  var past = state.leaves.filter(function(l){ return leaveEnd(l) < todayStr; });
+  /* ===== Emergency section ===== */
+  var emgs = state.leaves.filter(function(l){ return l.type === "emergency"; });
+  emgs.sort(function(a,b){
+    var ra = (a.resolution||"pending")==="pending" ? 0 : 1;
+    var rb = (b.resolution||"pending")==="pending" ? 0 : 1;
+    if(ra !== rb) return ra - rb;
+    return a.from < b.from ? 1 : -1;
+  });
+  if(emgs.length){
+    var pendCnt = emgs.filter(function(l){ return (l.resolution||"pending")==="pending"; }).length;
+    html += '<div class="stafflistcard"><div class="dept-head" style="background:var(--pink)"><span>🚨 Emergency — Proof Tracking</span><span class="cnt">'+(pendCnt ? pendCnt+' pending' : 'sab clear')+'</span></div>';
+    emgs.forEach(function(l){
+      var s = staffById(l.staffId);
+      var nm = s ? s.name : "(deleted staff)";
+      var res = l.resolution || "pending";
+      var badge = res==="pending" ? '<span class="badge emg">Proof Pending</span>' : (res==="normal" ? '<span class="badge approved">Normal Leave ✔</span>' : '<span class="badge ded">Deduction ✖</span>');
+      var dl = monthEndStr(l.from);
+      var overdue = (res==="pending" && todayStr > dl);
+      var dlLine = "";
+      if(res==="pending"){
+        dlLine = " • Proof deadline: "+fmtShort(parseYMD(dl)) + (overdue ? " — ⏰ NIKAL GAYI!" : "");
+      } else if(l.resolvedAt){
+        dlLine = " • Decide hui: "+fmtShort(parseYMD(l.resolvedAt));
+      }
+      var sub = leaveRangeLabel(l) + (l.note ? " • "+l.note : "") + (l.createdAt ? " • Book: "+fmtShort(parseYMD(l.createdAt)) : "") + dlLine;
+      var btns = "";
+      if(res==="pending"){
+        btns += '<button class="approvebtn" data-elok="'+l.id+'">✔ Proof OK</button> <button class="approvebtn" style="background:var(--redbg);color:var(--red);" data-elded="'+l.id+'">✖ Deduct</button>';
+      } else {
+        btns += '<button class="iconbtn" data-elreset="'+l.id+'">↩</button>';
+      }
+      btns += '<button class="iconbtn" data-lvdel="'+l.id+'">🗑</button>';
+      var hl = overdue ? ' style="background:var(--redbg);"' : '';
+      html += '<div class="leaverow"'+hl+'><div class="staffinfo"><div class="staffname">'+escapeHTML(nm)+badge+'</div>'+
+              '<div class="staffrole">'+escapeHTML(sub)+'</div></div><div style="white-space:nowrap;">'+btns+'</div></div>';
+    });
+    html += '</div>';
+  }
+
+  /* ===== Month summary ===== */
+  var mpNow = new Date();
+  var mp = mpNow.getFullYear()+"-"+pad2(mpNow.getMonth()+1);
+  var sums = {};
+  state.leaves.forEach(function(l){
+    var dcount = 0;
+    eachLeaveDate(l, function(ds){ if(ds.indexOf(mp)===0) dcount++; });
+    if(!dcount) return;
+    var v = sums[l.staffId] = sums[l.staffId] || {normal:0, pending:0, ded:0};
+    if(l.type === "emergency"){
+      var r = l.resolution || "pending";
+      if(r==="normal") v.normal += dcount;
+      else if(r==="deduction") v.ded += dcount;
+      else v.pending += dcount;
+    } else if(l.status === "approved"){
+      v.normal += dcount;
+    }
+  });
+  var sumKeys = Object.keys(sums);
+  if(sumKeys.length){
+    html += '<div class="stafflistcard"><div class="dept-head" style="background:var(--navy)">📊 Is Mahine Ka Hisaab ('+MONTH_NAMES[mpNow.getMonth()]+')</div>';
+    sumKeys.forEach(function(sid){
+      var s = staffById(sid);
+      if(!s) return;
+      var v = sums[sid];
+      html += '<div class="staffmanrow"><div class="staffname" style="font-size:13.5px;">'+escapeHTML(s.name)+'</div>'+
+              '<div class="staffrole">Normal: '+v.normal+(v.pending ? ' • <b style="color:var(--pink);">EL Pending: '+v.pending+'</b>' : '')+(v.ded ? ' • <b style="color:var(--red);">Deduction: '+v.ded+'</b>' : '')+'</div></div>';
+    });
+    html += '</div>';
+  }
+
+  var upcoming = state.leaves.filter(function(l){ return l.type !== "emergency" && leaveEnd(l) >= todayStr; });
+  var past = state.leaves.filter(function(l){ return l.type !== "emergency" && leaveEnd(l) < todayStr; });
   upcoming.sort(function(a,b){ return a.from < b.from ? -1 : (a.from > b.from ? 1 : 0); });
   past.sort(function(a,b){ return a.from > b.from ? -1 : (a.from < b.from ? 1 : 0); });
   if(past.length > 15) past = past.slice(0,15);
@@ -930,6 +1016,37 @@ function renderLeaveTab(){
   Array.prototype.forEach.call(c.querySelectorAll("[data-lvdel]"), function(b){
     b.addEventListener("click", function(){ deleteLeave(b.getAttribute("data-lvdel")); });
   });
+  Array.prototype.forEach.call(c.querySelectorAll("[data-elok]"), function(b){
+    b.addEventListener("click", function(){
+      var l = leaveById(b.getAttribute("data-elok"));
+      if(!l) return;
+      l.resolution = "normal";
+      l.resolvedAt = ymd(new Date());
+      saveState(); renderAll();
+      showToast("Proof accept — Normal Leave me count hui ✔");
+    });
+  });
+  Array.prototype.forEach.call(c.querySelectorAll("[data-elded]"), function(b){
+    b.addEventListener("click", function(){
+      var l = leaveById(b.getAttribute("data-elded"));
+      if(!l) return;
+      if(!confirm("Proof nahi mila — Deduction pakka karein?")) return;
+      l.resolution = "deduction";
+      l.resolvedAt = ymd(new Date());
+      saveState(); renderAll();
+      showToast("Deduction mark ho gayi ✖");
+    });
+  });
+  Array.prototype.forEach.call(c.querySelectorAll("[data-elreset]"), function(b){
+    b.addEventListener("click", function(){
+      var l = leaveById(b.getAttribute("data-elreset"));
+      if(!l) return;
+      l.resolution = "pending";
+      delete l.resolvedAt;
+      saveState(); renderAll();
+      showToast("Wapas Proof Pending me chala gaya.");
+    });
+  });
 }
 
 function deleteLeave(id){
@@ -953,6 +1070,8 @@ function openLeaveSheet(leaveId){
   document.getElementById("leaveTo").value = (l && l.to && l.to!==l.from) ? l.to : "";
   document.getElementById("leaveNote").value = l ? (l.note||"") : "";
   document.getElementById("leaveDeleteBtn").style.display = l ? "block" : "none";
+  isEmgLeave = !!(l && l.type === "emergency");
+  updateEmgToggle();
   updateLeaveConflict();
   showOverlay("leaveOverlay");
 }
@@ -1013,6 +1132,15 @@ function saveLeave(status){
     l = {id:"l_"+Date.now()+"_"+Math.floor(Math.random()*1000), staffId:staffId, from:from, to:to, note:note, status:status, createdAt:ymd(new Date())};
     state.leaves.push(l);
   }
+  if(isEmgLeave){
+    l.type = "emergency";
+    if(!l.resolution) l.resolution = "pending";
+    l.status = "approved";
+    status = "approved";
+  } else {
+    delete l.type;
+    delete l.resolution;
+  }
   if(status==="approved") applyLeaveToRoster(l);
   saveState();
   hideOverlay("leaveOverlay");
@@ -1025,6 +1153,16 @@ document.getElementById("leaveDeleteBtn").addEventListener("click", function(){
   if(!editingLeaveId) return;
   hideOverlay("leaveOverlay");
   deleteLeave(editingLeaveId);
+});
+var isEmgLeave = false;
+function updateEmgToggle(){
+  var b = document.getElementById("emgToggle");
+  if(!b) return;
+  b.className = "pill" + (isEmgLeave ? " selEmg" : "");
+}
+document.getElementById("emgToggle").addEventListener("click", function(){
+  isEmgLeave = !isEmgLeave;
+  updateEmgToggle();
 });
 
 /* ===== STAFF TAB (sirf staff) ===== */
@@ -1298,8 +1436,8 @@ function copyWeekText(){
   showToast("Pura week copy ho gaya! WhatsApp me paste karein.");
 }
 
-var POSTER_BG = {"k-shift":"#E6F4EA","k-leave":"#FDEAEA","k-off":"#EFEFEF","k-halfday":"#FFF6DD","k-break":"#FDECDC","k-othersite":"#E0F2F1","empty":"#FFFFFF"};
-var POSTER_FG = {"k-shift":"#2E7D32","k-leave":"#C62828","k-off":"#616161","k-halfday":"#B8860B","k-break":"#C65911","k-othersite":"#00695C","empty":"#C9CEDA"};
+var POSTER_BG = {"k-shift":"#E6F4EA","k-leave":"#FDEAEA","k-emergency":"#FCE4EC","k-off":"#EFEFEF","k-halfday":"#FFF6DD","k-break":"#FDECDC","k-othersite":"#E0F2F1","empty":"#FFFFFF"};
+var POSTER_FG = {"k-shift":"#2E7D32","k-leave":"#C62828","k-emergency":"#AD1457","k-off":"#616161","k-halfday":"#B8860B","k-break":"#C65911","k-othersite":"#00695C","empty":"#C9CEDA"};
 
 function posterCellData(s, ds){
   var e = getEntry(ds, s.id);
@@ -1765,7 +1903,7 @@ function updateDayLeaveHint(dateStr, staffId){
   var parts = [];
   var own = ownLeaveOn(dateStr, staffId);
   if(own){
-    parts.push("🚫 <b>Is staff ki khud ki leave ("+(own.status==="approved"?"Approved":"Pending")+") is din book hai!</b> Duty lagane se pehle soch lein.");
+    parts.push("🚫 <b>Is staff ki khud ki "+(own.type==="emergency"?"EMERGENCY leave":"leave ("+(own.status==="approved"?"Approved":"Pending")+")")+" is din book hai!</b> Duty lagane se pehle soch lein.");
   }
   var others = othersOffOnDate(dateStr, staffId);
   if(others.length){
@@ -1781,7 +1919,7 @@ function updateDayLeaveHint(dateStr, staffId){
 }
 function renderKindPills(){
   var wrap = document.getElementById("kindPills");
-  var cls = {shift:"selK",leave:"selLeave",off:"selOff",halfday:"selHalf",break:"selBreak",othersite:"selSite"};
+  var cls = {shift:"selK",leave:"selLeave",emergency:"selEmg",off:"selOff",halfday:"selHalf",break:"selBreak",othersite:"selSite"};
   var html = "";
   KIND_ORDER.forEach(function(k){
     html += '<button class="pill'+(currentKind===k?" "+cls[k]:"")+'" data-kind="'+k+'">'+KIND_NAME[k]+'</button>';
@@ -1941,12 +2079,22 @@ function buildEntryFromSheet(s){
 }
 
 function syncLeaveRegisterOnSave(s, ds, entry){
-  if(entry.kind === "leave"){
+  if(entry.kind === "leave" || entry.kind === "emergency"){
+    var isEmg = (entry.kind === "emergency");
     var existing = ownLeaveOn(ds, s.id);
     if(!existing){
-      state.leaves.push({id:"l_"+Date.now()+"_"+Math.floor(Math.random()*1000), staffId:s.id, from:ds, to:ds, note:(entry.notes||""), status:"approved", createdAt:ymd(new Date()), via:"roster"});
+      var nl = {id:"l_"+Date.now()+"_"+Math.floor(Math.random()*1000), staffId:s.id, from:ds, to:ds, note:(entry.notes||""), status:"approved", createdAt:ymd(new Date()), via:"roster"};
+      if(isEmg){ nl.type = "emergency"; nl.resolution = "pending"; }
+      state.leaves.push(nl);
     } else {
       existing.status = "approved";
+      if(isEmg){
+        existing.type = "emergency";
+        if(!existing.resolution) existing.resolution = "pending";
+      } else {
+        delete existing.type;
+        delete existing.resolution;
+      }
       if(entry.notes && !existing.note) existing.note = entry.notes;
     }
   } else {
